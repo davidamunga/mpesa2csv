@@ -1,5 +1,15 @@
 # mpesa2csv
 
+## 0.13.0
+
+### Minor Changes
+
+- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: add recurring transactions export sheet
+
+- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: add time of day export sheet
+
+- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: updated ui components
+
 ## 0.12.4
 
 ### Patch Changes
