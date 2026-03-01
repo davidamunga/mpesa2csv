@@ -16,6 +16,7 @@ import FileUploader from "./components/file-uploader";
 import PasswordPrompt from "./components/password-prompt";
 import ExportOptions from "./components/export-options";
 import { UpdateChecker } from "./components/update-checker";
+import { ThemeToggle } from "./components/theme-toggle";
 import { Button } from "./components/ui/button";
 import { formatDateForFilename } from "./utils/helpers";
 import { TIMEOUTS, URLS } from "./constants";
@@ -496,42 +497,39 @@ function App() {
                 />
               </div>
             ) : status === FileStatus.PROCESSING ? (
-              <div className="p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
+              <div className="flex flex-col items-center justify-center gap-6 py-12 text-center">
                 {/* Spinner */}
-                <div className="relative w-20 h-20 mb-6">
-                  <div className="w-20 h-20 rounded-full border-[3px] border-primary/20"></div>
-                  <div className="absolute inset-0 w-20 h-20 rounded-full border-[3px] border-transparent border-t-primary animate-spin"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl">📊</span>
-                  </div>
+                <div className="relative w-14 h-14">
+                  <div className="w-14 h-14 rounded-full border-[3px] border-muted" />
+                  <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin" />
                 </div>
 
-                <h3 className="text-lg font-semibold mb-2">
-                  Processing Your Statements
-                </h3>
-                
-                <p className="text-sm text-muted-foreground mb-8">
-                  File {currentFileIndex + 1} of {files.length}
-                </p>
+                {/* Text */}
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold">Processing your statements</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {files.length > 1
+                      ? `File ${currentFileIndex + 1} of ${files.length}`
+                      : "Extracting transactions…"}
+                  </p>
+                </div>
 
-                {/* Progress bar */}
-                <div className="w-64 mb-4">
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                {/* Progress bar + file name */}
+                <div className="w-56 space-y-2">
+                  <div className="h-1 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-300"
+                      className="h-full bg-primary rounded-full transition-all duration-500"
                       style={{
                         width: `${((currentFileIndex + 1) / files.length) * 100}%`,
                       }}
-                    ></div>
+                    />
                   </div>
+                  {files[currentFileIndex] && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {files[currentFileIndex].name}
+                    </p>
+                  )}
                 </div>
-
-                {/* Current file */}
-                {files[currentFileIndex] && (
-                  <p className="text-xs text-muted-foreground truncate max-w-xs">
-                    {files[currentFileIndex].name}
-                  </p>
-                )}
               </div>
             ) : status === FileStatus.SUCCESS && statements.length > 0 ? (
               <div className="rounded-lg px-6  transition-all duration-300 max-h-full overflow-y-auto">
@@ -651,6 +649,7 @@ function App() {
             <div className="flex items-center gap-3">
               {appVersion && <span className="">v{appVersion}</span>}
               <UpdateChecker showButton={true} />
+              <ThemeToggle />
             </div>
           </div>
         </footer>

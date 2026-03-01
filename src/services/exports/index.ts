@@ -6,3 +6,5 @@ export { addTransactionAmountDistributionSheet } from "./transactionAmountDistri
 export { addTopContactsSheet } from "./topContactsSheet";
 export { addMoneyInSheet } from "./moneyInSheet";
 export { addMoneyOutSheet } from "./moneyOutSheet";
+export { addRecurringTransactionsSheet } from "./recurringTransactionsSheet";
+export { addTimeOfDayActivitySheet } from "./timeOfDayActivitySheet";

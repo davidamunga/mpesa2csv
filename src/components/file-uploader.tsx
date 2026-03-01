@@ -4,6 +4,7 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import { FileStatus } from "../types";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { FileUp, Shield } from "lucide-react";
 
 interface FileUploaderProps {
   onFilesSelected: (files: File[]) => void;
@@ -148,93 +149,100 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   return (
-    <div
-      className={cn(
-        "text-center transition-all duration-300 rounded-lg p-6 min-h-[250px] flex items-center justify-center cursor-pointer",
-        dragActive
-          ? "border-4 border-primary bg-primary/10 shadow-lg scale-105 transform"
-          : "border-2 border-dashed border-border hover:border-primary hover:bg-background/10 shadow-sm hover:shadow-md"
-      )}
-      tabIndex={0}
-      aria-label="Drop PDF files here or click to select files"
-    >
-      <div className="flex flex-col items-center justify-center space-y-3">
-        <span
-          className={`text-4xl font-bold transition-transform duration-300 ${
-            dragActive ? "scale-125" : ""
-          }`}
-        >
-          {dragActive ? "📂✨" : "💸→📝"}
-        </span>
-        <h3
-          className={cn(
-            "text-xl text-primary font-semibold transition-colors duration-300"
-          )}
-        >
-          {dragActive
-            ? "Drop your PDF files here!"
-            : "Convert M-PESA Statements to CSV/Excel"}
-        </h3>
-
-        <p
-          className={cn(
-            "max-w-md transition-colors duration-300",
-            dragActive ? "text-primary font-medium" : ""
-          )}
-        >
-          {dragActive
-            ? "Release to upload your M-PESA statement PDFs"
-            : "Convert your PDF statements to CSV/Excel files instantly. Drag & drop multiple files or click below to get started."}
-        </p>
-
-        {!dragActive && (
-          <Button
-            type="button"
-            onClick={handleButtonClick}
-            size="lg"
-            className="px-6 shadow-md hover:shadow-lg"
-            disabled={
-              status === FileStatus.LOADING || status === FileStatus.PROCESSING
-            }
+    <div className="flex flex-col gap-3">
+      {/* Drop zone */}
+      <div
+        className={cn(
+          "relative rounded-xl transition-all duration-200 cursor-pointer overflow-hidden",
+          dragActive
+            ? "border-2 border-primary bg-primary/8 scale-[1.01]"
+            : "border-2 border-dashed border-border hover:border-primary/60 hover:bg-muted/30"
+        )}
+        tabIndex={0}
+        aria-label="Drop PDF files here or click to select files"
+      >
+        <div className="flex flex-col items-center justify-center gap-4 px-8 py-10 text-center">
+          {/* Icon */}
+          <div
+            className={cn(
+              "rounded-2xl p-4 transition-all duration-200",
+              dragActive
+                ? "bg-primary/15 text-primary scale-110"
+                : "bg-muted/60 text-muted-foreground"
+            )}
           >
-            {status === FileStatus.LOADING
-              ? "Loading Files..."
-              : "Choose PDF Files"}
-          </Button>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept="application/pdf"
-          onChange={handleFileChange}
-          multiple
-        />
-
-        {status === FileStatus.LOADING && (
-          <div className="mt-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+            <FileUp
+              className={cn(
+                "w-8 h-8 transition-all duration-200",
+                dragActive && "text-primary"
+              )}
+              strokeWidth={1.5}
+            />
           </div>
-        )}
 
-        {uploadError && (
-          <div className="mt-4 w-full max-w-md">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-              <p className="text-destructive text-sm">{uploadError}</p>
-            </div>
+          {/* Text */}
+          <div className="space-y-1.5">
+            <h3 className="text-base font-semibold">
+              {dragActive
+                ? "Release to upload"
+                : "Drop your M-PESA statement PDFs here"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {dragActive
+                ? "Drop to start converting your statements"
+                : "Supports single and multiple files — drag & drop or browse"}
+            </p>
           </div>
-        )}
 
-        <div className="text-xs sm:text-sm mt-4 flex flex-col items-center justify-center gap-1 text-center sm:text-left px-4">
-          <div className="flex items-center w-full gap-1">
-            <strong className="w-full text-center">🔒 100% Private</strong>
-          </div>
-          <span className="w-full text-center">
-            All processing happens locally on your device. Your data never
-            leaves your computer or gets sent to any servers.
-          </span>
+          {/* CTA */}
+          {!dragActive && (
+            <Button
+              type="button"
+              onClick={handleButtonClick}
+              size="default"
+              className="px-6"
+              disabled={
+                status === FileStatus.LOADING || status === FileStatus.PROCESSING
+              }
+            >
+              {status === FileStatus.LOADING ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  Loading…
+                </>
+              ) : (
+                "Browse PDF Files"
+              )}
+            </Button>
+          )}
         </div>
+
+        {/* Drag overlay shimmer */}
+        {dragActive && (
+          <div className="absolute inset-0 pointer-events-none rounded-xl ring-2 ring-primary ring-inset" />
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="application/pdf"
+        onChange={handleFileChange}
+        multiple
+      />
+
+      {/* Error */}
+      {uploadError && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2.5">
+          <p className="text-destructive text-sm">{uploadError}</p>
+        </div>
+      )}
+
+      {/* Privacy note */}
+      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <Shield className="w-3.5 h-3.5 shrink-0" />
+        <span>100% local — your files never leave your device</span>
       </div>
     </div>
   );

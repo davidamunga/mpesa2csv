@@ -9,6 +9,8 @@ import {
   addTopContactsSheet,
   addMoneyInSheet,
   addMoneyOutSheet,
+  addRecurringTransactionsSheet,
+  addTimeOfDayActivitySheet,
 } from "./exports";
 import { applyTransactionFilters } from "./transactionFilters";
 import { formatDate } from "../utils/dateFormatter";
@@ -148,6 +150,16 @@ export class XlsxService {
     // Add Money Out sheet if requested
     if (options?.includeMoneyOutSheet) {
       addMoneyOutSheet(workbook, statement);
+    }
+
+    // Add Recurring Transactions sheet if requested
+    if (options?.includeRecurringTransactionsSheet) {
+      addRecurringTransactionsSheet(workbook, statement);
+    }
+
+    // Add Time-of-Day Activity sheet if requested
+    if (options?.includeTimeOfDaySheet) {
+      addTimeOfDayActivitySheet(workbook, statement);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();

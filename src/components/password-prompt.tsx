@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FileStatus } from "../types";
-import { Lock } from "lucide-react";
+import { Lock, Shield } from "lucide-react";
 import { cn } from "../lib/utils";
 import { PasswordInput } from "./ui/password-input";
 import { Button } from "./ui/button";
@@ -27,6 +27,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
   totalFiles,
 }) => {
   const [password, setPassword] = useState<string>("");
+  const isProcessing = status === FileStatus.PROCESSING;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,72 +37,77 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 space-y-3">
-      <Lock className="size-8 text-yellow-500" />
-
-      <h3 className="text-xl font-semibold text-green-700 dark:text-green-300">
-        Password Protected PDF
-      </h3>
-
-      {totalFiles && totalFiles > 1 && (
-        <div className="text-sm  mb-2">
-          File {(currentFileIndex ?? 0) + 1} of {totalFiles}
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="rounded-2xl bg-muted/60 p-4 text-yellow-500">
+          <Lock className="size-8" strokeWidth={1.5} />
         </div>
-      )}
 
-      {currentFileName && (
-        <div className="text-sm font-medium text-primary mb-3 px-4 py-2  rounded-md max-w-md">
-          {currentFileName}
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold">Password protected PDF</h3>
+          {totalFiles && totalFiles > 1 ? (
+            <p className="text-sm text-muted-foreground">
+              File {(currentFileIndex ?? 0) + 1} of {totalFiles}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Enter the password to unlock and process this file
+            </p>
+          )}
         </div>
-      )}
 
-      <p className=" max-w-md text-center">
-        This PDF is password protected. Please enter the password to unlock it.
-      </p>
+        {currentFileName && (
+          <span className="inline-block max-w-xs truncate rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+            {currentFileName}
+          </span>
+        )}
+      </div>
 
-      <form onSubmit={handleSubmit} className="w-full  mt-4">
-        <div className="space-y-4">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           <PasswordInput
             className={cn(
               error
-                ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
+                ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
                 : ""
             )}
             placeholder="Enter password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={status === FileStatus.PROCESSING}
+            disabled={isProcessing}
+            autoFocus
           />
-
           {error && (
-            <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>
+            <p className="text-xs text-destructive">{error}</p>
           )}
+        </div>
 
-          <Button
-            type="submit"
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white w-full px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-all"
-            disabled={!password.trim() || status === FileStatus.PROCESSING}
-          >
-            {status === FileStatus.PROCESSING ? (
-              <span className="flex items-center justify-center">
-                <span className="animate-spin h-4 w-4 border-b-2 border-white rounded-full mr-2"></span>
-                Processing...
-              </span>
-            ) : (
-              "Unlock PDF"
-            )}
-          </Button>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={!password.trim() || isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <div className="animate-spin h-4 w-4 border-b-2 border-current rounded-full" />
+              Unlocking…
+            </>
+          ) : (
+            "Unlock PDF"
+          )}
+        </Button>
 
-          {/* Skip and Reset buttons */}
-          <div className="flex gap-2 mt-3">
+        {(onSkip || onReset) && (
+          <div className="flex gap-2">
             {onSkip && (
               <Button
                 type="button"
                 variant="outline"
-                size="lg"
-                className="flex-1 text-foreground"
+                className="flex-1"
                 onClick={onSkip}
-                disabled={status === FileStatus.PROCESSING}
+                disabled={isProcessing}
               >
                 Skip File
               </Button>
@@ -110,20 +116,21 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                size="lg"
-                className="flex-1 text-foreground"
+                className="flex-1"
                 onClick={onReset}
-                disabled={status === FileStatus.PROCESSING}
+                disabled={isProcessing}
               >
                 Restart
               </Button>
             )}
           </div>
-        </div>
+        )}
       </form>
 
-      <div className="text-xs  mt-4">
-        The password will only be used locally to decrypt the PDF file.
+      {/* Privacy note */}
+      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <Shield className="w-3.5 h-3.5 shrink-0" />
+        <span>Password is only used locally to decrypt the file</span>
       </div>
     </div>
   );
