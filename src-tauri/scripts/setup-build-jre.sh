@@ -266,10 +266,16 @@ create_minimal_jre_from_full() {
         done
     fi
     
-    # Strip debug symbols from native libraries to reduce size
-    if command -v strip >/dev/null 2>&1; then
+    # Strip debug symbols from native libraries to reduce size.
+    # On macOS, Adoptium/Temurin dylibs are pre-signed by Apple; running strip
+    # invalidates those signatures and causes notarization to fail, so skip it.
+    local CURRENT_OS
+    CURRENT_OS=$(uname -s 2>/dev/null || echo "Unknown")
+    if [ "$CURRENT_OS" != "Darwin" ] && command -v strip >/dev/null 2>&1; then
         print_info "Stripping debug symbols..." >&2
-        find "$OUTPUT_DIR" -type f \( -name "*.so" -o -name "*.dylib" -o -name "*.dll" \) -exec strip -x {} \; 2>/dev/null || true
+        find "$OUTPUT_DIR" -type f \( -name "*.so" -o -name "*.dll" \) -exec strip -x {} \; 2>/dev/null || true
+    else
+        print_info "Skipping strip on macOS to preserve Apple code signatures (required for notarization)" >&2
     fi
     
     # Set proper permissions
