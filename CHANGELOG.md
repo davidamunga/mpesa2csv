@@ -1,5 +1,11 @@
 # mpesa2csv
 
+## 0.12.4
+
+### Patch Changes
+
+- [`c5c2765`](https://github.com/davidamunga/mpesa2csv/commit/c5c2765906d794bfbbf71c10484a4d466e703f9a) Thanks [@davidamunga](https://github.com/davidamunga)! - fix: os build release fixes
+
 ## 0.12.1
 
 ### Patch Changes
