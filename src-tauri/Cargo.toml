@@ -1,6 +1,6 @@
 [package]
 name = "mpesa2csv"
-version = "0.12.1"
+version = "0.12.2"
 description = "Convert M-PESA Statements to CSV/Excel Files"
 authors = ["David Amunga"]
 edition = "2021"
