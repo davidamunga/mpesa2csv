@@ -164,64 +164,39 @@ download_jre() {
     if [ "$EXT" = "tar.gz" ]; then
         tar -xzf "$ARCHIVE_FILE" -C "$EXTRACT_DIR" --strip-components=1
     elif [ "$EXT" = "zip" ]; then
-        unzip -q "$ARCHIVE_FILE" -d "${EXTRACT_DIR}-temp"
+        local UNZIP_TEMP="${EXTRACT_DIR}-unzip"
+        rm -rf "$UNZIP_TEMP"
+        unzip -q "$ARCHIVE_FILE" -d "$UNZIP_TEMP"
 
-        print_info "Extracted contents:" >&2
-        ls -la "${EXTRACT_DIR}-temp" >&2 || true
+        print_info "Extracted contents of $UNZIP_TEMP:" >&2
+        ls -la "$UNZIP_TEMP" >&2 || true
         
-        # Count subdirectories
-        SUBDIR_COUNT=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+        # Find the single top-level JRE subdirectory (e.g., jdk-17.0.13+11-jre)
+        JRE_SUBDIR=$(find "$UNZIP_TEMP" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)
         
-        if [ "$SUBDIR_COUNT" -eq 1 ]; then
-            # Single subdirectory - likely the JRE root
-            JRE_SUBDIR=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)
-            print_info "Found single subdirectory: $(basename "$JRE_SUBDIR")" >&2
-            print_info "Moving contents from subdirectory to $EXTRACT_DIR..." >&2
-            
-            mkdir -p "$EXTRACT_DIR"
-            
-            # Move contents - try multiple methods for cross-platform compatibility
-            (
-                cd "$JRE_SUBDIR" && 
-                # Use find + cp to ensure all files including hidden ones are copied
-                find . -mindepth 1 -maxdepth 1 -exec cp -r {} "$EXTRACT_DIR/" \;
-            ) || {
-                # Fallback: try with shopt
-                (
-                    shopt -s dotglob nullglob 2>/dev/null || true
-                    cp -r "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null || 
-                    mv "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null
-                )
-            }
-            
-            rm -rf "${EXTRACT_DIR}-temp"
-            print_success "Contents moved successfully" >&2
+        if [ -n "$JRE_SUBDIR" ]; then
+            print_info "Found JRE directory: $(basename "$JRE_SUBDIR")" >&2
+            # Remove the pre-created empty EXTRACT_DIR so mv can rename directly
+            rm -rf "$EXTRACT_DIR"
+            mv "$JRE_SUBDIR" "$EXTRACT_DIR"
+            rm -rf "$UNZIP_TEMP"
+            print_success "JRE moved to: $EXTRACT_DIR" >&2
         else
-            # Multiple subdirectories or no subdirectories - move everything
-            print_info "Moving all contents (found $SUBDIR_COUNT subdirectories)" >&2
-            mkdir -p "$EXTRACT_DIR"
-            (
-                shopt -s dotglob nullglob 2>/dev/null || true
-                cp -r "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null ||
-                mv "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null
-            )
-            rm -rf "${EXTRACT_DIR}-temp"
+            # No subdirectory — treat the unzip temp dir as the JRE root
+            print_warning "No JRE subdirectory found, using unzip dir directly" >&2
+            rm -rf "$EXTRACT_DIR"
+            mv "$UNZIP_TEMP" "$EXTRACT_DIR"
         fi
         
-        # Verify structure - check for bin or Contents directory
-        print_info "Verifying extracted structure..." >&2
+        # Verify structure — check for bin (Windows/Linux) or Contents/Home/bin (macOS)
         if [ -d "$EXTRACT_DIR/bin" ]; then
-            print_success "Standard structure: bin directory found" >&2
+            print_success "Verified: standard structure (bin/ found)" >&2
         elif [ -d "$EXTRACT_DIR/Contents/Home/bin" ]; then
-            print_success "macOS structure: Contents/Home/bin found" >&2
+            print_success "Verified: macOS structure (Contents/Home/bin found)" >&2
         else
-            print_warning "Warning: Neither bin nor Contents/Home/bin found after extraction" >&2
+            print_warning "Neither bin/ nor Contents/Home/bin found after extraction" >&2
             print_info "Directory contents:" >&2
             ls -la "$EXTRACT_DIR" >&2 || true
-            if [ -d "$EXTRACT_DIR/Contents" ]; then
-                print_info "Contents directory:" >&2
-                ls -la "$EXTRACT_DIR/Contents" >&2 || true
-            fi
         fi
     fi
     
@@ -614,7 +589,10 @@ main() {
     # Set permissions and verify
     print_info "Final step: Setting permissions and verifying" >&2
     echo "" >&2
-    set_java_permissions "$FINAL_JRE_PATH"
+    set_java_permissions "$FINAL_JRE_PATH" || {
+        print_warning "set_java_permissions returned non-zero; JRE structure:" >&2
+        ls -la "$FINAL_JRE_PATH" >&2 || true
+    }
     
     if ! verify_jre_architecture "$FINAL_JRE_PATH" "$PLATFORM_JRE"; then
         print_error "JRE architecture verification failed!" >&2
@@ -624,7 +602,7 @@ main() {
         print_info "Downloading architecture-specific JRE..." >&2
         DOWNLOADED_JRE=$(download_jre "$PLATFORM_JRE")
         copy_full_jre "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"
-        set_java_permissions "$FINAL_JRE_PATH"
+        set_java_permissions "$FINAL_JRE_PATH" || true
         
         if ! verify_jre_architecture "$FINAL_JRE_PATH" "$PLATFORM_JRE"; then
             print_error "Architecture verification failed after retry" >&2
