@@ -618,6 +618,47 @@ jobs:
         id: timestamp
         run: echo "build_time=$(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_OUTPUT
 
+      - name: Re-sign JRE dylibs for macOS notarization
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
+            JRE_DIR="src-tauri/resources/build-jre/jre-macos-arm64"
+          else
+            JRE_DIR="src-tauri/resources/build-jre/jre-macos-x64"
+          fi
+
+          if [ ! -d "$JRE_DIR" ]; then
+            echo "❌ JRE directory not found: $JRE_DIR"
+            exit 1
+          fi
+
+          echo "🔏 Re-signing JRE dylibs with Developer ID certificate..."
+
+          # Remove quarantine and extended attributes that can interfere with signing
+          xattr -cr "$JRE_DIR" 2>/dev/null || true
+
+          SIGNED=0
+          FAILED=0
+          # Sign only regular files (not symlinks) to avoid double-signing through symlink targets
+          while IFS= read -r -d '' dylib; do
+            if codesign --force \
+                --sign "$APPLE_SIGNING_IDENTITY" \
+                --keychain build.keychain \
+                --options runtime \
+                --timestamp \
+                "$dylib" 2>/dev/null; then
+              SIGNED=$((SIGNED + 1))
+            else
+              echo "  ⚠️  Failed to re-sign: $dylib"
+              FAILED=$((FAILED + 1))
+            fi
+          done < <(find "$JRE_DIR" -type f \( -name "*.dylib" -o -name "*.jnilib" \) -print0)
+
+          echo "✅ Re-signing complete: $SIGNED signed, $FAILED failed"
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+
       - name: Build Tauri app
         id: tauri-build
         continue-on-error: true
