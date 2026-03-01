@@ -168,24 +168,42 @@ download_jre() {
 
         print_info "Extracted contents:" >&2
         ls -la "${EXTRACT_DIR}-temp" >&2 || true
-        # Move contents from subdirectory
-        JRE_SUBDIR=$(find "${EXTRACT_DIR}-temp" -maxdepth 1 -type d -name "*jre*" -o -name "jdk*" | head -1)
         
-        if [ -n "$JRE_SUBDIR" ] && [ -d "$JRE_SUBDIR" ]; then
-            print_info "Found JRE subdirectory: $JRE_SUBDIR" >&2
-            mv "$JRE_SUBDIR"/* "$EXTRACT_DIR/"
+        # Count subdirectories
+        SUBDIR_COUNT=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+        
+        if [ "$SUBDIR_COUNT" -eq 1 ]; then
+            # Single subdirectory - likely the JRE root
+            JRE_SUBDIR=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d | head -1)
+            print_info "Found single subdirectory: $JRE_SUBDIR" >&2
+            print_info "Moving contents from subdirectory..." >&2
+            
+            # Move contents
+            shopt -s dotglob 2>/dev/null || true
+            mv "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null || cp -r "$JRE_SUBDIR"/* "$EXTRACT_DIR/"
             rm -rf "${EXTRACT_DIR}-temp"
+            print_success "Contents moved successfully" >&2
         else
-            print_info "No JRE subdirectory found, moving all contents" >&2
-            mv "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/"
-            rmdir "${EXTRACT_DIR}-temp" 2>/dev/null || rm -rf "${EXTRACT_DIR}-temp"
+            # Multiple subdirectories or no subdirectories - move everything
+            print_info "Moving all contents (found $SUBDIR_COUNT subdirectories)" >&2
+            shopt -s dotglob 2>/dev/null || true
+            mv "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null || cp -r "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/"
+            rm -rf "${EXTRACT_DIR}-temp"
         fi
         
-        # Verify bin directory exists
-        if [ ! -d "$EXTRACT_DIR/bin" ]; then
-            print_warning "Warning: bin directory not found after extraction" >&2
+        # Verify structure - check for bin or Contents directory
+        if [ -d "$EXTRACT_DIR/bin" ]; then
+            print_success "Standard structure: bin directory found" >&2
+        elif [ -d "$EXTRACT_DIR/Contents/Home/bin" ]; then
+            print_success "macOS structure: Contents/Home/bin found" >&2
+        else
+            print_warning "Warning: Neither bin nor Contents/Home/bin found after extraction" >&2
             print_info "Directory contents:" >&2
             ls -la "$EXTRACT_DIR" >&2 || true
+            if [ -d "$EXTRACT_DIR/Contents" ]; then
+                print_info "Contents directory:" >&2
+                ls -la "$EXTRACT_DIR/Contents" >&2 || true
+            fi
         fi
     fi
     

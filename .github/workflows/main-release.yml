@@ -375,23 +375,43 @@ jobs:
             echo "   Size: $(du -sh "$JRE_DIR" | cut -f1)"
             echo ""
             
+            # Check for bin directory (both standard and macOS structure)
             if [ -d "$JRE_DIR/bin" ]; then
-              echo "✅ bin directory exists"
-              echo "   Contents of bin directory (first 20 files):"
-              ls -lh "$JRE_DIR/bin" | head -20
+              echo "✅ bin directory exists (standard structure)"
+              echo "   Contents of bin directory (first 10 files):"
+              ls -lh "$JRE_DIR/bin" | head -10
+            elif [ -d "$JRE_DIR/Contents/Home/bin" ]; then
+              echo "✅ bin directory exists (macOS structure: Contents/Home/bin)"
+              echo "   Contents of bin directory (first 10 files):"
+              ls -lh "$JRE_DIR/Contents/Home/bin" | head -10
             else
-              echo "❌ bin directory NOT found"
+              echo "❌ bin directory NOT found in standard or macOS structure"
               echo "   Contents of JRE directory:"
               ls -lh "$JRE_DIR"
+              if [ -d "$JRE_DIR/Contents" ]; then
+                echo "   Contents/:"
+                ls -lh "$JRE_DIR/Contents"
+              fi
             fi
             echo ""
             
-            if [ -f "$JAVA_EXE" ]; then
-              echo "✅ Java executable exists at: $JAVA_EXE"
+            # Try both possible Java executable locations for macOS
+            ACTUAL_JAVA_EXE="$JAVA_EXE"
+            if [[ "${{ matrix.platform }}" == "macos-latest" ]] && [ ! -f "$JAVA_EXE" ]; then
+              # Try macOS structure
+              if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
+                ACTUAL_JAVA_EXE="src-tauri/resources/build-jre/jre-macos-arm64/Contents/Home/bin/java"
+              else
+                ACTUAL_JAVA_EXE="src-tauri/resources/build-jre/jre-macos-x64/Contents/Home/bin/java"
+              fi
+            fi
+            
+            if [ -f "$ACTUAL_JAVA_EXE" ]; then
+              echo "✅ Java executable exists at: $ACTUAL_JAVA_EXE"
               
               # Verify architecture on macOS and Linux
               if command -v file >/dev/null 2>&1; then
-                JAVA_ARCH=$(file "$JAVA_EXE")
+                JAVA_ARCH=$(file "$ACTUAL_JAVA_EXE")
                 echo "   Binary architecture: $JAVA_ARCH"
                 
                 # Check if architecture matches target
@@ -418,12 +438,12 @@ jobs:
               
               echo ""
               echo "   Testing Java execution:"
-              "$JAVA_EXE" -version 2>&1 || {
+              "$ACTUAL_JAVA_EXE" -version 2>&1 || {
                 echo "❌ Java execution failed!"
                 exit 1
               }
             else
-              echo "❌ Java executable NOT found at: $JAVA_EXE"
+              echo "❌ Java executable NOT found at: $JAVA_EXE or $ACTUAL_JAVA_EXE"
               exit 1
             fi
           else
@@ -665,7 +685,7 @@ jobs:
         shell: bash
         run: |
           echo "🔍 Verifying JRE is bundled in Windows installers..."
-          
+
           # Get JRE size for reference
           JRE_SIZE=$(du -sh src-tauri/resources/build-jre 2>/dev/null | cut -f1 || echo "unknown")
           echo "Source JRE size: ${JRE_SIZE}"
@@ -732,7 +752,7 @@ jobs:
           fi
 
           echo "Found .app bundle: $APP_BUNDLE"
-          
+
           # Get source JRE size for reference
           SOURCE_JRE_SIZE=$(du -sh src-tauri/resources/build-jre 2>/dev/null | cut -f1 || echo "unknown")
           echo "Source JRE size: ${SOURCE_JRE_SIZE}"
@@ -745,19 +765,19 @@ jobs:
           fi
 
           echo "Looking for JRE subdirectory: $JRE_SUBDIR"
-          
+
           # Check what's actually in Resources
           echo ""
           echo "Contents of Resources directory:"
           ls -la "$APP_BUNDLE/Contents/Resources/" | head -20 || echo "Could not list Resources"
-          
+
           # Try multiple possible JRE locations
           JRE_PATHS=(
             "$APP_BUNDLE/Contents/Resources/build-jre/$JRE_SUBDIR"
             "$APP_BUNDLE/Contents/Resources/$JRE_SUBDIR"
             "$APP_BUNDLE/Contents/Resources/build-jre"
           )
-          
+
           JRE_PATH=""
           for path in "${JRE_PATHS[@]}"; do
             if [ -d "$path" ]; then
