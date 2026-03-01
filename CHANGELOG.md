@@ -1,5 +1,11 @@
 # mpesa2csv
 
+## 0.12.1
+
+### Patch Changes
+
+- [`1c8dd71`](https://github.com/davidamunga/mpesa2csv/commit/1c8dd71dfb0b603c0f4af2ca946ed73759ff7cac) Thanks [@davidamunga](https://github.com/davidamunga)! - fix: intel mac build
+
 ## 0.12.0
 
 ### Minor Changes
