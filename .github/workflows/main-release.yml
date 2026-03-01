@@ -323,9 +323,9 @@ jobs:
         with:
           path: |
             src-tauri/resources/build-jre
-          key: ${{ runner.os }}-${{ matrix.target }}-jre-v5-${{ hashFiles('src-tauri/scripts/setup-build-jre.sh') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-jre-v6-17.0.13-${{ hashFiles('src-tauri/scripts/setup-build-jre.sh') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-jre-v5-
+            ${{ runner.os }}-${{ matrix.target }}-jre-v6-17.0.13-
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -333,7 +333,7 @@ jobs:
       - name: Setup JRE for Tabula
         shell: bash
         run: |
-          # For macOS, download only the architecture we're building for
+          # For macOS, specify the target architecture explicitly
           if [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
             if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
               echo "📦 Setting up ARM64 JRE for Apple Silicon build..."
@@ -388,16 +388,50 @@ jobs:
             
             if [ -f "$JAVA_EXE" ]; then
               echo "✅ Java executable exists at: $JAVA_EXE"
+              
+              # Verify architecture on macOS and Linux
+              if command -v file >/dev/null 2>&1; then
+                JAVA_ARCH=$(file "$JAVA_EXE")
+                echo "   Binary architecture: $JAVA_ARCH"
+                
+                # Check if architecture matches target
+                if [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
+                  if [[ "${{ matrix.target }}" == "x86_64-apple-darwin" ]]; then
+                    if echo "$JAVA_ARCH" | grep -q "x86_64\|x86-64"; then
+                      echo "   ✅ Correct architecture: x86_64 (Intel)"
+                    else
+                      echo "   ❌ WRONG ARCHITECTURE! Expected x86_64, found:"
+                      echo "   $JAVA_ARCH"
+                      echo "   This will cause 'Bad CPU type' errors!"
+                      exit 1
+                    fi
+                  elif [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
+                    if echo "$JAVA_ARCH" | grep -q "arm64\|aarch64"; then
+                      echo "   ✅ Correct architecture: ARM64 (Apple Silicon)"
+                    else
+                      echo "   ❌ WRONG ARCHITECTURE! Expected ARM64"
+                      exit 1
+                    fi
+                  fi
+                fi
+              fi
+              
+              echo ""
               echo "   Testing Java execution:"
-              "$JAVA_EXE" -version 2>&1 || echo "⚠️  Java execution failed"
+              "$JAVA_EXE" -version 2>&1 || {
+                echo "❌ Java execution failed!"
+                exit 1
+              }
             else
               echo "❌ Java executable NOT found at: $JAVA_EXE"
+              exit 1
             fi
           else
             echo "❌ JRE directory NOT found: $JRE_DIR"
             echo ""
             echo "Contents of build-jre:"
             ls -lh src-tauri/resources/build-jre/ || echo "build-jre directory doesn't exist"
+            exit 1
           fi
 
       - name: Setup AppImage build tools (Ubuntu)

@@ -127,9 +127,9 @@ jobs:
         with:
           path: |
             app/src-tauri/resources/build-jre
-          key: ${{ runner.os }}-jre-${{ hashFiles('app/src-tauri/scripts/setup-build-jre.sh') }}
+          key: ${{ runner.os }}-jre-v6-17.0.13-${{ hashFiles('app/src-tauri/scripts/setup-build-jre.sh') }}
           restore-keys: |
-            ${{ runner.os }}-jre-
+            ${{ runner.os }}-jre-v6-17.0.13-
 
       - name: Install dependencies
         if: matrix.test_type == 'frontend' || matrix.test_type == 'tauri' || matrix.test_type == 'security'

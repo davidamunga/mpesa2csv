@@ -215,28 +215,74 @@ download_jre() {
     echo "$EXTRACT_DIR"
 }
 
-# Create minimal JRE using jlink
-create_minimal_jre() {
+create_minimal_jre_from_full() {
+    local SOURCE_JRE=$1
+    local OUTPUT_DIR=$2
+    
+    if [ ! -d "$SOURCE_JRE" ]; then
+        print_error "Source JRE directory not found: $SOURCE_JRE" >&2
+        return 1
+    fi
+    
+    print_info "Creating minimal JRE by stripping unnecessary components..." >&2
+    
+    cp -r "$SOURCE_JRE" "$OUTPUT_DIR"
+    
+    local DIRS_TO_REMOVE=(
+        "man"
+        "legal"
+        "jmods"
+        "include"
+        "demo"
+        "sample"
+        "src.zip"
+        "javafx-src.zip"
+    )
+    
+    for dir in "${DIRS_TO_REMOVE[@]}"; do
+        if [ -e "$OUTPUT_DIR/$dir" ]; then
+            rm -rf "$OUTPUT_DIR/$dir"
+            print_info "Removed: $dir" >&2
+        fi
+    done
+    
+    # For macOS JRE with Contents/Home structure
+    if [ -d "$OUTPUT_DIR/Contents/Home" ]; then
+        for dir in "${DIRS_TO_REMOVE[@]}"; do
+            if [ -e "$OUTPUT_DIR/Contents/Home/$dir" ]; then
+                rm -rf "$OUTPUT_DIR/Contents/Home/$dir"
+            fi
+        done
+    fi
+    
+    # Strip debug symbols from native libraries to reduce size
+    if command -v strip >/dev/null 2>&1; then
+        print_info "Stripping debug symbols..." >&2
+        find "$OUTPUT_DIR" -type f \( -name "*.so" -o -name "*.dylib" -o -name "*.dll" \) -exec strip -x {} \; 2>/dev/null || true
+    fi
+    
+    # Set proper permissions
+    find "$OUTPUT_DIR" -type f -exec chmod 644 {} \; 2>/dev/null || true
+    find "$OUTPUT_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
+    
+    local SIZE=$(du -sh "$OUTPUT_DIR" | cut -f1)
+    print_success "Minimal JRE created (Size: $SIZE, reduced from full JRE)" >&2
+    
+    return 0
+}
+
+# Legacy jlink-based minimal JRE creation (kept for reference but not recommended for cross-compilation)
+create_minimal_jre_with_jlink() {
     local SOURCE_JRE=$1
     local OUTPUT_DIR=$2
     
     # Modules required for Tabula PDF processing
-    # java.base - Core Java functionality
-    # java.sql - SQL support (required by Tabula)
-    # java.desktop - Desktop functionality (required by Tabula)
-    # java.xml - XML support (required by Tabula)
-    # java.logging - Logging support (required by Tabula)
-    # java.naming - Naming support (required by Tabula)
-    # java.management - Management support (required by Tabula)
     local MODULES="java.base,java.desktop,java.xml,java.sql,java.logging,java.naming,java.management"
 
-    print_info "Creating minimal JRE with modules: $MODULES" >&2
+    print_info "Creating minimal JRE with jlink modules: $MODULES" >&2
     
-    # Find jlink in the downloaded JRE first
+    # Find jlink
     local JLINK_CMD=""
-    
-    # Check if downloaded JRE has jlink (it won't, as it's a JRE not JDK)
-    # So we need to use system JDK's jlink
     
     if command -v jlink >/dev/null 2>&1; then
         JLINK_CMD="jlink"
@@ -251,16 +297,12 @@ create_minimal_jre() {
     fi
     
     if [ -z "$JLINK_CMD" ]; then
-        print_warning "jlink not found. Will use full JRE instead." >&2
-        print_warning "To create minimal JRE, install JDK 11+ or set JAVA_HOME" >&2
+        print_warning "jlink not found. Cannot create minimal JRE with jlink." >&2
         return 1
     fi
     
     print_info "Using jlink: $JLINK_CMD" >&2
-    
-    # Use system JDK modules to create minimal JRE
-    # We don't need modules from the downloaded JRE - we'll create a fresh minimal runtime
-    print_info "Creating minimal JRE from system JDK modules" >&2
+    print_warning "Note: jlink will use host system architecture, not target architecture" >&2
     
     # Create minimal JRE using system JDK
     if "$JLINK_CMD" \
@@ -328,6 +370,76 @@ set_java_permissions() {
     
     print_warning "Java binary not found in expected locations" >&2
     return 1
+}
+
+verify_jre_architecture() {
+    local JRE_PATH=$1
+    local EXPECTED_PLATFORM=$2
+    
+    # Find java executable
+    local JAVA_BIN=""
+    if [ -f "$JRE_PATH/bin/java.exe" ]; then
+        JAVA_BIN="$JRE_PATH/bin/java.exe"
+    elif [ -f "$JRE_PATH/bin/java" ]; then
+        JAVA_BIN="$JRE_PATH/bin/java"
+    elif [ -f "$JRE_PATH/Contents/Home/bin/java" ]; then
+        JAVA_BIN="$JRE_PATH/Contents/Home/bin/java"
+    fi
+    
+    if [ -z "$JAVA_BIN" ] || [ ! -f "$JAVA_BIN" ]; then
+        print_warning "Cannot verify architecture: Java executable not found" >&2
+        return 0  # Don't fail, just warn
+    fi
+    
+    # Check binary architecture using file command (if available)
+    if command -v file >/dev/null 2>&1; then
+        local FILE_INFO=$(file "$JAVA_BIN" 2>/dev/null || echo "")
+        print_info "Java binary architecture: $FILE_INFO" >&2
+        
+        # Verify architecture matches expected platform
+        case "$EXPECTED_PLATFORM" in
+            jre-macos-x64)
+                if echo "$FILE_INFO" | grep -q "x86_64\|x86-64"; then
+                    print_success "✓ Architecture verified: x86_64 (Intel)" >&2
+                elif echo "$FILE_INFO" | grep -q "arm64\|aarch64"; then
+                    print_error "❌ Architecture mismatch!" >&2
+                    print_error "Expected: x86_64 (Intel)" >&2
+                    print_error "Found: ARM64" >&2
+                    print_error "This will cause 'Bad CPU type' errors on Intel Macs!" >&2
+                    return 1
+                fi
+                ;;
+            jre-macos-arm64)
+                if echo "$FILE_INFO" | grep -q "arm64\|aarch64"; then
+                    print_success "✓ Architecture verified: ARM64 (Apple Silicon)" >&2
+                elif echo "$FILE_INFO" | grep -q "x86_64\|x86-64"; then
+                    print_error "❌ Architecture mismatch!" >&2
+                    print_error "Expected: ARM64 (Apple Silicon)" >&2
+                    print_error "Found: x86_64 (Intel)" >&2
+                    return 1
+                fi
+                ;;
+            jre-linux-x64)
+                if echo "$FILE_INFO" | grep -q "x86-64\|x86_64"; then
+                    print_success "✓ Architecture verified: x86-64" >&2
+                elif echo "$FILE_INFO" | grep -q "aarch64\|ARM"; then
+                    print_error "❌ Architecture mismatch!" >&2
+                    print_error "Expected: x86-64" >&2
+                    print_error "Found: ARM64/aarch64" >&2
+                    return 1
+                fi
+                ;;
+            jre-windows-x64)
+                if echo "$FILE_INFO" | grep -q "x86-64\|PE32+"; then
+                    print_success "✓ Architecture verified: x86-64" >&2
+                fi
+                ;;
+        esac
+    else
+        print_info "file command not available, skipping architecture check" >&2
+    fi
+    
+    return 0
 }
 
 # Verify JRE works
@@ -440,34 +552,24 @@ main() {
     local CREATED_MINIMAL=false
     local DOWNLOADED_JRE=""
     
-    # Try to create minimal JRE first (doesn't require download)
+    print_info "Step 1/2: Downloading JRE with correct architecture" >&2
+    echo "" >&2
+    DOWNLOADED_JRE=$(download_jre "$PLATFORM_JRE")
+    echo "" >&2
+    
     if [ "$USE_MINIMAL" = "true" ]; then
-        print_info "Step 1/2: Creating optimized minimal JRE" >&2
+        print_info "Step 2/2: Creating minimal JRE from downloaded full JRE" >&2
         echo "" >&2
         
-        if create_minimal_jre "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"; then
+        if create_minimal_jre_from_full "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"; then
             CREATED_MINIMAL=true
         else
-            print_warning "Cannot create minimal JRE, will download full JRE instead" >&2
-            echo "" >&2
-            
-            print_info "Step 1/2: Downloading full JRE" >&2
-            echo "" >&2
-            DOWNLOADED_JRE=$(download_jre "$PLATFORM_JRE")
-            echo "" >&2
-            
-            print_info "Step 2/2: Installing full JRE" >&2
+            print_warning "Failed to create minimal JRE, using full JRE instead" >&2
             echo "" >&2
             copy_full_jre "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"
         fi
     else
-        print_info "USE_MINIMAL_JRE=false, downloading full JRE" >&2
-        print_info "Step 1/2: Downloading full JRE" >&2
-        echo "" >&2
-        DOWNLOADED_JRE=$(download_jre "$PLATFORM_JRE")
-        echo "" >&2
-        
-        print_info "Step 2/2: Installing full JRE" >&2
+        print_info "Step 2/2: Installing full JRE (USE_MINIMAL_JRE=false)" >&2
         echo "" >&2
         copy_full_jre "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"
     fi
@@ -477,6 +579,23 @@ main() {
     print_info "Final step: Setting permissions and verifying" >&2
     echo "" >&2
     set_java_permissions "$FINAL_JRE_PATH"
+    
+    if ! verify_jre_architecture "$FINAL_JRE_PATH" "$PLATFORM_JRE"; then
+        print_error "JRE architecture verification failed!" >&2
+        print_error "Cleaning up and retrying with downloaded JRE..." >&2
+        rm -rf "$FINAL_JRE_PATH"
+        
+        print_info "Downloading architecture-specific JRE..." >&2
+        DOWNLOADED_JRE=$(download_jre "$PLATFORM_JRE")
+        copy_full_jre "$DOWNLOADED_JRE" "$FINAL_JRE_PATH"
+        set_java_permissions "$FINAL_JRE_PATH"
+        
+        if ! verify_jre_architecture "$FINAL_JRE_PATH" "$PLATFORM_JRE"; then
+            print_error "Architecture verification failed after retry" >&2
+            exit 1
+        fi
+    fi
+    
     verify_jre "$FINAL_JRE_PATH"
     echo "" >&2
     
