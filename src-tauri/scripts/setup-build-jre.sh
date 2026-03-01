@@ -170,28 +170,46 @@ download_jre() {
         ls -la "${EXTRACT_DIR}-temp" >&2 || true
         
         # Count subdirectories
-        SUBDIR_COUNT=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+        SUBDIR_COUNT=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
         
         if [ "$SUBDIR_COUNT" -eq 1 ]; then
             # Single subdirectory - likely the JRE root
-            JRE_SUBDIR=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d | head -1)
-            print_info "Found single subdirectory: $JRE_SUBDIR" >&2
-            print_info "Moving contents from subdirectory..." >&2
+            JRE_SUBDIR=$(find "${EXTRACT_DIR}-temp" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)
+            print_info "Found single subdirectory: $(basename "$JRE_SUBDIR")" >&2
+            print_info "Moving contents from subdirectory to $EXTRACT_DIR..." >&2
             
-            # Move contents
-            shopt -s dotglob 2>/dev/null || true
-            mv "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null || cp -r "$JRE_SUBDIR"/* "$EXTRACT_DIR/"
+            mkdir -p "$EXTRACT_DIR"
+            
+            # Move contents - try multiple methods for cross-platform compatibility
+            (
+                cd "$JRE_SUBDIR" && 
+                # Use find + cp to ensure all files including hidden ones are copied
+                find . -mindepth 1 -maxdepth 1 -exec cp -r {} "$EXTRACT_DIR/" \;
+            ) || {
+                # Fallback: try with shopt
+                (
+                    shopt -s dotglob nullglob 2>/dev/null || true
+                    cp -r "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null || 
+                    mv "$JRE_SUBDIR"/* "$EXTRACT_DIR/" 2>/dev/null
+                )
+            }
+            
             rm -rf "${EXTRACT_DIR}-temp"
             print_success "Contents moved successfully" >&2
         else
             # Multiple subdirectories or no subdirectories - move everything
             print_info "Moving all contents (found $SUBDIR_COUNT subdirectories)" >&2
-            shopt -s dotglob 2>/dev/null || true
-            mv "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null || cp -r "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/"
+            mkdir -p "$EXTRACT_DIR"
+            (
+                shopt -s dotglob nullglob 2>/dev/null || true
+                cp -r "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null ||
+                mv "${EXTRACT_DIR}-temp"/* "$EXTRACT_DIR/" 2>/dev/null
+            )
             rm -rf "${EXTRACT_DIR}-temp"
         fi
         
         # Verify structure - check for bin or Contents directory
+        print_info "Verifying extracted structure..." >&2
         if [ -d "$EXTRACT_DIR/bin" ]; then
             print_success "Standard structure: bin directory found" >&2
         elif [ -d "$EXTRACT_DIR/Contents/Home/bin" ]; then
