@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { platform } from "@tauri-apps/plugin-os";
-import { Download, RotateCcw, ExternalLink, MessageSquare } from "lucide-react";
+import {
+  Download,
+  RotateCcw,
+  ExternalLink,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Table2,
+  X,
+} from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import {
@@ -26,8 +35,11 @@ function App() {
   const [status, setStatus] = useState<FileStatus>(FileStatus.IDLE);
   const [error, setError] = useState<string | undefined>(undefined);
   const [statements, setStatements] = useState<MPesaStatement[]>([]);
-  const [exportLink, setExportLink] = useState<string>("");
   const [exportFileName, setExportFileName] = useState<string>("");
+  // Ref to signal in-flight processFiles loop to stop (cancel button).
+  const cancelRequested = useRef(false);
+  // Controls the transaction-preview panel.
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>(
     ExportFormat.XLSX
   );
@@ -73,19 +85,11 @@ function App() {
       format,
       formatDateForFilename()
     );
-
-    ExportService.createDownloadLink(combinedStatement, format, exportOptions)
-      .then(setExportLink)
-      .catch(() => setExportLink(""));
     setExportFileName(fileName);
   };
 
   const handleOptionsChange = (options: ExportOptionsType) => {
     setExportOptions(options);
-    const combinedStatement = statements[0];
-    ExportService.createDownloadLink(combinedStatement, exportFormat, options)
-      .then(setExportLink)
-      .catch(() => setExportLink(""));
   };
 
   useEffect(() => {
@@ -104,14 +108,17 @@ function App() {
   }, []);
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
+    cancelRequested.current = false;
     setFiles(selectedFiles);
     setStatus(FileStatus.LOADING);
     setError(undefined);
     setStatements([]);
     setCurrentFileIndex(0);
+    setPreviewExpanded(false);
 
     try {
       const result = await processFiles(selectedFiles);
+      if (result?.cancelled) return;
       if (result?.needsPassword) {
         pendingStatements.current = result.processedStatements;
       } else if (result?.error) {
@@ -134,6 +141,7 @@ function App() {
     const processedStatements: MPesaStatement[] = [...existingStatements];
 
     for (let i = startIndex; i < filesToProcess.length; i++) {
+      if (cancelRequested.current) break;
       setCurrentFileIndex(i);
       const file = filesToProcess[i];
 
@@ -173,6 +181,9 @@ function App() {
         statement.fileName = file.name;
         processedStatements.push(statement);
       } catch (err: any) {
+        if (cancelRequested.current) {
+          return { cancelled: true, fileIndex: i, processedStatements };
+        }
         if (
           err.message?.includes("password") ||
           err.message?.includes("encrypted") ||
@@ -193,6 +204,10 @@ function App() {
       }
     }
 
+    if (cancelRequested.current) {
+      return { cancelled: true, fileIndex: filesToProcess.length, processedStatements };
+    }
+
     if (processedStatements.length > 0) {
       const combinedStatement = combineStatements(processedStatements);
       setStatements([combinedStatement]);
@@ -202,14 +217,6 @@ function App() {
         exportFormat,
         formatDateForFilename()
       );
-
-      ExportService.createDownloadLink(
-        combinedStatement,
-        exportFormat,
-        exportOptions
-      )
-        .then(setExportLink)
-        .catch(() => setExportLink(""));
       setExportFileName(fileName);
       setStatus(FileStatus.SUCCESS);
     }
@@ -282,14 +289,6 @@ function App() {
           exportFormat,
           formatDateForFilename()
         );
-
-        ExportService.createDownloadLink(
-          combinedStatement,
-          exportFormat,
-          exportOptions
-        )
-          .then(setExportLink)
-          .catch(() => setExportLink(""));
         setExportFileName(fileName);
         setStatus(FileStatus.SUCCESS);
       }
@@ -319,14 +318,6 @@ function App() {
           exportFormat,
           formatDateForFilename()
         );
-
-        ExportService.createDownloadLink(
-          combinedStatement,
-          exportFormat,
-          exportOptions
-        )
-          .then(setExportLink)
-          .catch(() => setExportLink(""));
         setExportFileName(fileName);
         setStatus(FileStatus.SUCCESS);
       } else {
@@ -338,6 +329,7 @@ function App() {
   };
 
   const handleReset = () => {
+    cancelRequested.current = false;
     setFiles([]);
     setStatus(FileStatus.IDLE);
     setError(undefined);
@@ -347,12 +339,23 @@ function App() {
     setIsDownloading(false);
     setDownloadSuccess(false);
     setSavedFilePath("");
+    setExportFileName("");
+    setPreviewExpanded(false);
+  };
 
-    if (exportLink) {
-      URL.revokeObjectURL(exportLink);
-      setExportLink("");
-      setExportFileName("");
+  const handleCancel = async () => {
+    cancelRequested.current = true;
+    try {
+      await invoke("cancel_pdf_extraction");
+    } catch {
+      // best-effort — ignore if no process is running
     }
+    setStatus(FileStatus.IDLE);
+    setFiles([]);
+    setStatements([]);
+    setCurrentFileIndex(0);
+    pendingStatements.current = [];
+    setError(undefined);
   };
 
   const handleDownloadError = (error: any) => {
@@ -479,13 +482,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (exportLink) {
-        URL.revokeObjectURL(exportLink);
-      }
-    };
-  }, [exportLink]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -554,6 +550,17 @@ function App() {
                     </p>
                   )}
                 </div>
+
+                {/* Cancel button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  className="gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancel
+                </Button>
               </div>
             ) : status === FileStatus.SUCCESS && statements.length > 0 ? (
               <div className="rounded-lg px-6  transition-all duration-300 max-h-full overflow-y-auto">
@@ -575,6 +582,63 @@ function App() {
                   </p>
                 </div>
 
+                {/* ── Transaction Preview ────────────────────────── */}
+                <div className="mb-4 border border-border/60 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Table2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Preview Transactions</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({statements[0].transactions.length} total)
+                      </span>
+                    </div>
+                    {previewExpanded
+                      ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                      : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                  </button>
+
+                  {previewExpanded && (
+                    <div className="border-t border-border/60 overflow-x-auto max-h-64">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-muted/60">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Details</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Paid In</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Withdrawn</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statements[0].transactions.slice(0, 10).map((tx, i) => (
+                            <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                              <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">{tx.completionTime}</td>
+                              <td className="px-3 py-1.5 max-w-[180px] truncate">{tx.details}</td>
+                              <td className="px-3 py-1.5 text-right text-green-600 dark:text-green-400">
+                                {tx.paidIn ? tx.paidIn.toLocaleString() : ""}
+                              </td>
+                              <td className="px-3 py-1.5 text-right text-red-500 dark:text-red-400">
+                                {tx.withdrawn ? tx.withdrawn.toLocaleString() : ""}
+                              </td>
+                              <td className="px-3 py-1.5 text-right font-medium">{tx.balance.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {statements[0].transactions.length > 10 && (
+                        <p className="text-xs text-center text-muted-foreground py-2 bg-muted/20 border-t border-border/40">
+                          Showing 10 of {statements[0].transactions.length} — export to see all
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Export Options ──────────────────────────────── */}
                 <div className="mb-4">
                   <ExportOptions
                     exportFormat={exportFormat}
@@ -585,39 +649,39 @@ function App() {
                   />
                 </div>
 
+                {/* ── Action Buttons ──────────────────────────────── */}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-5">
-                  {!downloadSuccess ? (
+                  {/* Export is always visible so users can re-export after changing format/options */}
+                  <Button
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    size="lg"
+                    className="px-6"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current" />
+                        Preparing Export...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Export as {ExportService.getFormatDisplayName(exportFormat)}
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Open File appears only after a successful save */}
+                  {downloadSuccess && savedFilePath && (
                     <Button
-                      onClick={handleDownload}
-                      disabled={isDownloading}
+                      onClick={handleOpenFile}
+                      variant="outline"
                       size="lg"
-                      className="px-6"
+                      className="px-6 text-foreground"
                     >
-                      {isDownloading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                          Preparing Export...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-5 h-5" />
-                          Export as{" "}
-                          {ExportService.getFormatDisplayName(exportFormat)}
-                        </>
-                      )}
+                      <ExternalLink className="w-5 h-5" />
+                      Open File
                     </Button>
-                  ) : (
-                    <div className="flex flex-row items-center gap-1">
-                      <Button
-                        onClick={handleOpenFile}
-                        variant="outline"
-                        size="lg"
-                        className="px-6 text-foreground"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                        Open File
-                      </Button>
-                    </div>
                   )}
 
                   <Button
