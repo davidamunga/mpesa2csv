@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { platform } from "@tauri-apps/plugin-os";
 import { Download, RotateCcw, ExternalLink, MessageSquare } from "lucide-react";
@@ -39,6 +39,9 @@ function App() {
     includeTopContactsSheet: false,
   });
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
+  // Holds statements processed before a mid-batch password prompt so they
+  // are not lost when handlePasswordSubmit runs (statements state is still []).
+  const pendingStatements = useRef<MPesaStatement[]>([]);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [appVersion, setAppVersion] = useState<string>("");
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
@@ -109,7 +112,9 @@ function App() {
 
     try {
       const result = await processFiles(selectedFiles);
-      if (result?.error) {
+      if (result?.needsPassword) {
+        pendingStatements.current = result.processedStatements;
+      } else if (result?.error) {
         setStatus(FileStatus.ERROR);
         setError(result.error);
       }
@@ -135,24 +140,36 @@ function App() {
       try {
         setStatus(FileStatus.PROCESSING);
 
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+        const extractionPromise = TabulaService.extractTablesFromPdf(file);
+        const timeoutPromise = new Promise<string>((_, reject) => {
+          timeoutHandle = setTimeout(async () => {
+            try {
+              await invoke("cancel_pdf_extraction");
+            } catch {
+              // best-effort cancel — ignore errors
+            }
+            reject(
+              new Error(
+                `PDF processing timeout after ${
+                  TIMEOUTS.PDF_PROCESSING / 1000
+                } seconds`
+              )
+            );
+          }, TIMEOUTS.PDF_PROCESSING);
+        });
+
         const csvContent = await Promise.race([
-          TabulaService.extractTablesFromPdf(file),
-          new Promise<string>((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(
-                    `PDF processing timeout after ${
-                      TIMEOUTS.PDF_PROCESSING / 1000
-                    } seconds`
-                  )
-                ),
-              TIMEOUTS.PDF_PROCESSING
-            )
-          ),
+          extractionPromise.finally(() => clearTimeout(timeoutHandle)),
+          timeoutPromise,
         ]);
 
         const statement = TabulaService.parseTabulaCSV(csvContent);
+        if (statement.transactions.length === 0) {
+          throw new Error(
+            `No transactions found in "${file.name}". The file may not be a valid M-PESA statement.`
+          );
+        }
         statement.fileName = file.name;
         processedStatements.push(statement);
       } catch (err: any) {
@@ -242,13 +259,19 @@ function App() {
       const statement = TabulaService.parseTabulaCSV(csvContent);
       statement.fileName = currentFile.name;
 
-      const updatedStatements = [...statements, statement];
+      // Use the ref so already-processed files are not lost (statements state
+      // is still [] when processFiles returned early for a password prompt).
+      const updatedStatements = [...pendingStatements.current, statement];
+      pendingStatements.current = [];
       setStatements(updatedStatements);
 
       const nextIndex = currentFileIndex + 1;
       if (nextIndex < files.length) {
         const result = await processFiles(files, nextIndex, updatedStatements);
-        if (result?.error) {
+        if (result?.needsPassword) {
+          // Another file in the batch needs a password; persist current progress.
+          pendingStatements.current = result.processedStatements;
+        } else if (result?.error) {
           setStatus(FileStatus.ERROR);
           setError(result.error);
         }
@@ -320,6 +343,7 @@ function App() {
     setError(undefined);
     setStatements([]);
     setCurrentFileIndex(0);
+    pendingStatements.current = [];
     setIsDownloading(false);
     setDownloadSuccess(false);
     setSavedFilePath("");
