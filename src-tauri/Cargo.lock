@@ -2141,7 +2141,7 @@ dependencies = [
 
 [[package]]
 name = "mpesa2csv"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "serde",
  "serde_json",

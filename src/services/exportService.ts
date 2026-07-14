@@ -1,9 +1,10 @@
 import { MPesaStatement, ExportFormat, ExportOptions } from "../types";
 import { CsvService } from "./csvService";
-import { XlsxService } from "./xlsxService";
 import { JsonService } from "./jsonService";
 import { OfxService } from "./ofxService";
 import { QifService } from "./qifService";
+// XlsxService is intentionally NOT statically imported here.
+// ExcelJS (~700 kB) is lazy-loaded only when the user actually exports to XLSX.
 
 export class ExportService {
   static async createDownloadLink(
@@ -14,8 +15,10 @@ export class ExportService {
     switch (format) {
       case ExportFormat.CSV:
         return CsvService.createDownloadLink(statement, options);
-      case ExportFormat.XLSX:
+      case ExportFormat.XLSX: {
+        const { XlsxService } = await import("./xlsxService");
         return await XlsxService.createDownloadLink(statement, options);
+      }
       case ExportFormat.JSON:
         return JsonService.createDownloadLink(statement, options);
       case ExportFormat.OFX:
@@ -33,22 +36,14 @@ export class ExportService {
     format: ExportFormat,
     timestamp?: string
   ): string {
-    switch (format) {
-      case ExportFormat.CSV:
-        return CsvService.getFileName(statement, timestamp);
-      case ExportFormat.XLSX:
-        return XlsxService.getFileName(statement, timestamp);
-      case ExportFormat.JSON:
-        return JsonService.getFileName(statement, timestamp);
-      case ExportFormat.OFX:
-        return OfxService.getFileName(statement, timestamp, "ofx");
-      case ExportFormat.QFX:
-        return OfxService.getFileName(statement, timestamp, "qfx");
-      case ExportFormat.QIF:
-        return QifService.getFileName(statement, timestamp);
-      default:
-        throw new Error(`Unsupported export format: ${format}`);
-    }
+    // Inlined so ExportService.getFileName() never pulls in XlsxService/ExcelJS.
+    const base = statement.fileName
+      ? statement.fileName.replace(/\.[^/.]+$/, "")
+      : "mpesa-statement";
+    const ts =
+      timestamp ||
+      new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+    return `${base}_${ts}.${ExportService.getFileExtension(format)}`;
   }
 
   static getFileExtension(format: ExportFormat): string {
@@ -106,26 +101,29 @@ export class ExportService {
     options?: ExportOptions
   ): Promise<ArrayBuffer> {
     switch (format) {
-      case ExportFormat.CSV:
+      case ExportFormat.CSV: {
         const csvContent = CsvService.convertStatementToCsv(statement, options);
         const BOM = "\uFEFF";
-        const csvWithBOM = BOM + csvContent;
-        return new TextEncoder().encode(csvWithBOM).buffer;
-      case ExportFormat.XLSX:
+        return new TextEncoder().encode(BOM + csvContent).buffer;
+      }
+      case ExportFormat.XLSX: {
+        // Dynamic import keeps ExcelJS out of the initial bundle.
+        const { XlsxService } = await import("./xlsxService");
         return await XlsxService.convertStatementToXlsx(statement, options);
-      case ExportFormat.JSON:
-        const jsonContent = JsonService.convertStatementToJson(
-          statement,
-          options
-        );
+      }
+      case ExportFormat.JSON: {
+        const jsonContent = JsonService.convertStatementToJson(statement, options);
         return new TextEncoder().encode(jsonContent).buffer;
+      }
       case ExportFormat.OFX:
-      case ExportFormat.QFX:
+      case ExportFormat.QFX: {
         const ofxContent = OfxService.convertStatementToOfx(statement, options);
         return new TextEncoder().encode(ofxContent).buffer;
-      case ExportFormat.QIF:
+      }
+      case ExportFormat.QIF: {
         const qifContent = QifService.convertStatementToQif(statement, options);
         return new TextEncoder().encode(qifContent).buffer;
+      }
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }
