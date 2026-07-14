@@ -1,5 +1,28 @@
 # mpesa2csv
 
+## 0.14.0
+
+### Minor Changes
+
+- [#67](https://github.com/davidamunga/mpesa2csv/pull/67) [`159e467`](https://github.com/davidamunga/mpesa2csv/commit/159e467a4672cdf425a3b4abcc83a6151edde763) Thanks [@davidamunga](https://github.com/davidamunga)! - - Clickable drop zone
+  - Cancel button during processing
+  - Transaction preview before export
+  - Re-export without Start Again
+  - XLSX blob only on Export click
+  - Visible webhook result badge.
+
+### Patch Changes
+
+- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`65c8984`](https://github.com/davidamunga/mpesa2csv/commit/65c8984b738ad2b2d67b8f3dcb66397e2eec7b3e) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix analytics sheets ignoring active export filters (e.g. exclude charges, sort order).
+
+- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix multi-file batch losing already-processed statements when a mid-batch file requires a password.
+
+- [#66](https://github.com/davidamunga/mpesa2csv/pull/66) [`1dfacf4`](https://github.com/davidamunga/mpesa2csv/commit/1dfacf4e67f72335730c6427e209063c23ab1e41) Thanks [@davidamunga](https://github.com/davidamunga)! - fix : dependencies security
+
+- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Treat a parsed PDF with zero transactions as an error instead of showing a silent success screen.
+
+- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Kill the Java/Tabula process when PDF extraction times out instead of leaving it running in the background.
+
 ## 0.13.0
 
 ### Minor Changes
