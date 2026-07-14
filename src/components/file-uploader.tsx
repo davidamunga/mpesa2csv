@@ -148,6 +148,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({
     fileInputRef.current?.click();
   };
 
+  const handleDropZoneClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    handleButtonClick();
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {/* Drop zone */}
@@ -159,7 +164,10 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             : "border-2 border-dashed border-border hover:border-primary/60 hover:bg-muted/30"
         )}
         tabIndex={0}
+        role="button"
         aria-label="Drop PDF files here or click to select files"
+        onClick={handleDropZoneClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleButtonClick(); }}
       >
         <div className="flex flex-col items-center justify-center gap-4 px-8 py-10 text-center">
           {/* Icon */}

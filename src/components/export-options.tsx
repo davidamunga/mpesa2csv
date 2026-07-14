@@ -164,6 +164,8 @@ export default function ExportOptions({
       });
     } finally {
       setIsSending(false);
+      // Keep the panel open so the result is visible.
+      setIsWebhookOpen(true);
     }
   };
 
@@ -282,6 +284,20 @@ export default function ExportOptions({
           <div className="flex items-center gap-2">
             <Send className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">Send to Webhook</span>
+            {/* Status badge — visible even when panel is collapsed */}
+            {result && !isWebhookOpen && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium",
+                  result.success
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                )}
+              >
+                {result.success ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                {result.success ? "Sent" : "Failed"}
+              </span>
+            )}
           </div>
           {isWebhookOpen ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground" />
