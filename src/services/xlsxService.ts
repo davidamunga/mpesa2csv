@@ -112,54 +112,49 @@ export class XlsxService {
       });
     }
 
-    // Add Charges/Fees sheet if requested
+    // Add Charges/Fees sheet if requested.
+    // Always uses the unfiltered statement so the sheet has data even when
+    // "filter out charges" is active on the main sheet.
     if (options?.includeChargesSheet) {
       addChargesSheet(workbook, statement);
     }
 
-    // Add Financial Summary sheet if requested
+    // All remaining analytics sheets use filteredStatement so active filters
+    // (e.g. exclude charges, sort order) are consistently reflected.
     if (options?.includeSummarySheet) {
-      addFinancialSummarySheet(workbook, statement);
+      addFinancialSummarySheet(workbook, filteredStatement);
     }
 
-    // Add Monthly/Weekly Breakdown sheet if requested
     if (options?.includeBreakdownSheet) {
-      addMonthlyWeeklyBreakdownSheet(workbook, statement);
+      addMonthlyWeeklyBreakdownSheet(workbook, filteredStatement);
     }
 
-    // Add Daily Balance Tracker sheet if requested
     if (options?.includeDailyBalanceSheet) {
-      addDailyBalanceTrackerSheet(workbook, statement);
+      addDailyBalanceTrackerSheet(workbook, filteredStatement);
     }
 
-    // Add Transaction Amount Distribution sheet if requested
     if (options?.includeAmountDistributionSheet) {
-      addTransactionAmountDistributionSheet(workbook, statement);
+      addTransactionAmountDistributionSheet(workbook, filteredStatement);
     }
 
-    // Add Top Contacts sheet if requested
     if (options?.includeTopContactsSheet) {
-      addTopContactsSheet(workbook, statement);
+      addTopContactsSheet(workbook, filteredStatement);
     }
 
-    // Add Money In sheet if requested
     if (options?.includeMoneyInSheet) {
-      addMoneyInSheet(workbook, statement);
+      addMoneyInSheet(workbook, filteredStatement);
     }
 
-    // Add Money Out sheet if requested
     if (options?.includeMoneyOutSheet) {
-      addMoneyOutSheet(workbook, statement);
+      addMoneyOutSheet(workbook, filteredStatement);
     }
 
-    // Add Recurring Transactions sheet if requested
     if (options?.includeRecurringTransactionsSheet) {
-      addRecurringTransactionsSheet(workbook, statement);
+      addRecurringTransactionsSheet(workbook, filteredStatement);
     }
 
-    // Add Time-of-Day Activity sheet if requested
     if (options?.includeTimeOfDaySheet) {
-      addTimeOfDayActivitySheet(workbook, statement);
+      addTimeOfDayActivitySheet(workbook, filteredStatement);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();

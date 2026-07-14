@@ -1,6 +1,31 @@
+/// Shared state that holds the PID of the currently running Java/Tabula process
+/// so it can be killed if the frontend times out.
+pub struct ActivePid(pub std::sync::Mutex<Option<u32>>);
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+fn cancel_pdf_extraction(active_pid: tauri::State<'_, ActivePid>) {
+    let pid = active_pid.0.lock().unwrap().take();
+    if let Some(pid) = pid {
+        #[cfg(unix)]
+        {
+            std::process::Command::new("kill")
+                .args(["-9", &pid.to_string()])
+                .output()
+                .ok();
+        }
+        #[cfg(windows)]
+        {
+            std::process::Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .output()
+                .ok();
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -24,6 +49,7 @@ fn normalize_windows_path(path: std::path::PathBuf) -> std::path::PathBuf {
 #[tauri::command]
 async fn extract_pdf_tables(
     app_handle: tauri::AppHandle,
+    active_pid: tauri::State<'_, ActivePid>,
     pdf_path: String,
     output_path: String,
     password: Option<String>,
@@ -136,8 +162,8 @@ async fn extract_pdf_tables(
         cmd.arg("--password").arg(pwd);
     }
     
-    let output = cmd
-        .output()
+    let child = cmd
+        .spawn()
         .map_err(|e| {
             format!(
                 "Failed to execute Java (using {}): {}\n\
@@ -157,6 +183,23 @@ async fn extract_pdf_tables(
                 e
             )
         })?;
+
+    // Store the PID so cancel_pdf_extraction can kill this process if the
+    // frontend times out.
+    let pid = child.id();
+    *active_pid.0.lock().unwrap() = Some(pid);
+
+    let output = child
+        .wait_with_output()
+        .map_err(|e| format!("Failed waiting for Java process: {}", e))?;
+
+    // Clear the PID — process has finished.
+    {
+        let mut guard = active_pid.0.lock().unwrap();
+        if *guard == Some(pid) {
+            *guard = None;
+        }
+    }
     
     if output.status.success() {
         Ok(format!("Tables extracted successfully to: {}", output_path))
@@ -332,12 +375,13 @@ async fn save_file(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(ActivePid(std::sync::Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![greet, extract_pdf_tables, save_csv_file, save_file, get_app_version, open_file])
+        .invoke_handler(tauri::generate_handler![greet, extract_pdf_tables, cancel_pdf_extraction, save_csv_file, save_file, get_app_version, open_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
