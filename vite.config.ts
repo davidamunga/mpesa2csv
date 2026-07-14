@@ -15,6 +15,30 @@ export default defineConfig(async () => ({
     },
   },
 
+  build: {
+    // xlsxService is a lazy chunk (loaded on first XLSX export), so its size
+    // is not part of the initial load. Raise the limit to suppress the warning.
+    chunkSizeWarningLimit: 1100,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // ExcelJS and its analytics sheets load lazily on first XLSX export.
+          // No need to split them here — dynamic import() handles that.
+          // Split the large React vendor chunk for better caching.
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "vendor-react";
+          }
+          if (id.includes("node_modules/@base-ui")) {
+            return "vendor-base-ui";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "vendor-lucide";
+          }
+        },
+      },
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
