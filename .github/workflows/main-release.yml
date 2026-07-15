@@ -83,8 +83,8 @@ jobs:
           VALIDATION_PASSED="true"
           VALIDATION_ERRORS=""
 
-          AUDIT_OUT=$(pnpm audit --audit-level moderate 2>&1)
-          AUDIT_EXIT=$?
+          AUDIT_EXIT=0
+          AUDIT_OUT=$(pnpm audit --audit-level moderate 2>&1) || AUDIT_EXIT=$?
           if [ $AUDIT_EXIT -ne 0 ]; then
             if echo "$AUDIT_OUT" | grep -qE "410|ERR_PNPM_AUDIT_BAD_RESPONSE|endpoint is being retired"; then
               echo "⚠️ npm audit endpoint unavailable (retired July 2026). Skipping security check."
