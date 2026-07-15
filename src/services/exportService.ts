@@ -70,15 +70,15 @@ export class ExportService {
       case ExportFormat.CSV:
         return "CSV";
       case ExportFormat.XLSX:
-        return "Excel (XLSX)";
+        return "Excel";
       case ExportFormat.JSON:
         return "JSON";
       case ExportFormat.OFX:
-        return "OFX (Open Financial Exchange) - (Experimental)";
+        return "OFX (Experimental)";
       case ExportFormat.QFX:
-        return "QFX (Quicken) - (Experimental)";
+        return "QFX (Experimental)";
       case ExportFormat.QIF:
-        return "QIF (Quicken Interchange) - (Experimental)";
+        return "QIF (Experimental)";
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }

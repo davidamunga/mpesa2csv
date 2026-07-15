@@ -4,6 +4,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { ask, message } from "@tauri-apps/plugin-dialog";
 import { RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { URLS } from "../constants";
 
 const dismissedVersions = new Set<string>();
@@ -11,11 +12,13 @@ const dismissedVersions = new Set<string>();
 interface UpdateCheckerProps {
   autoCheck?: boolean;
   showButton?: boolean;
+  iconOnly?: boolean;
 }
 
 export function UpdateChecker({
   autoCheck = false,
   showButton = false,
+  iconOnly = false,
 }: UpdateCheckerProps) {
   const [isChecking, setIsChecking] = useState(false);
 
@@ -181,6 +184,28 @@ export function UpdateChecker({
       checkForUpdates(false);
     }
   }, [autoCheck, checkForUpdates]);
+
+  if (showButton && iconOnly) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              onClick={() => checkForUpdates(true)}
+              disabled={isChecking}
+              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="Check for updates"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? "animate-spin" : ""}`} />
+            </button>
+          }
+        />
+        <TooltipContent side="top">
+          <p>{isChecking ? "Checking for updates…" : "Check for updates"}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   if (showButton) {
     return (
