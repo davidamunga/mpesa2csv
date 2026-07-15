@@ -7,9 +7,10 @@ import {
   ExternalLink,
   MessageSquare,
   ChevronDown,
-  ChevronUp,
   Table2,
   X,
+  CheckCircle2,
+  Settings2,
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
@@ -29,6 +30,8 @@ import { ThemeToggle } from "./components/theme-toggle";
 import { Button } from "./components/ui/button";
 import { formatDateForFilename } from "./utils/helpers";
 import { TIMEOUTS, URLS } from "./constants";
+import { cn } from "@/lib/utils";
+import NumberFlow from "@number-flow/react";
 
 function App() {
   const [files, setFiles] = useState<File[]>([]);
@@ -40,6 +43,7 @@ function App() {
   const cancelRequested = useRef(false);
   // Controls the transaction-preview panel.
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [optionsExpanded, setOptionsExpanded] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>(
     ExportFormat.XLSX
   );
@@ -115,6 +119,7 @@ function App() {
     setStatements([]);
     setCurrentFileIndex(0);
     setPreviewExpanded(false);
+    setOptionsExpanded(false);
 
     try {
       const result = await processFiles(selectedFiles);
@@ -341,6 +346,7 @@ function App() {
     setSavedFilePath("");
     setExportFileName("");
     setPreviewExpanded(false);
+    setOptionsExpanded(false);
   };
 
   const handleCancel = async () => {
@@ -487,12 +493,21 @@ function App() {
     <div className="min-h-screen flex flex-col">
       <UpdateChecker autoCheck={true} />
       <div className="flex-1 mx-auto px-4 py-4 flex flex-col max-w-4xl w-full overflow-y-auto">
-        <main className="flex-1 flex items-center justify-center py-4">
-          <div className="w-full max-w-2xl transition-all duration-300 ease-in-out">
+        <main className={cn(
+          "flex-1 flex justify-center py-4",
+          (status === FileStatus.PROCESSING || status === FileStatus.PROTECTED)
+            ? "items-center"
+            : ""
+        )}>
+          <div className={cn(
+            "w-full max-w-2xl transition-all duration-300 ease-in-out",
+            (status === FileStatus.IDLE || status === FileStatus.LOADING || status === FileStatus.ERROR)
+              && "flex flex-col flex-1"
+          )}>
             {status === FileStatus.IDLE ||
             status === FileStatus.LOADING ||
             status === FileStatus.ERROR ? (
-              <div className="space-y-3 transition-all duration-300">
+              <div className="flex flex-col gap-3 flex-1 transition-all duration-300">
                 <FileUploader
                   onFilesSelected={handleFilesSelected}
                   status={status}
@@ -563,27 +578,122 @@ function App() {
                 </Button>
               </div>
             ) : status === FileStatus.SUCCESS && statements.length > 0 ? (
-              <div className="rounded-lg px-6  transition-all duration-300 max-h-full overflow-y-auto">
-                <div className="text-center mb-5">
-                  <h2 className="text-xl font-semibold text-primary mb-2">
-                    ✅ Your Data is Ready!
-                  </h2>
-                  <p className="">
-                    Processed {statements[0].transactions.length} transactions
-                    from {files.length} statement{files.length > 1 ? "s" : ""} •
-                    Choose your export options below
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Total Charges: KES{" "}
-                    {(statements[0].totalCharges).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                </div>
+              <div className="space-y-3 transition-all duration-300 max-w-lg mx-auto w-full">
 
-                {/* ── Transaction Preview ────────────────────────── */}
-                <div className="mb-4 border border-border/60 rounded-lg overflow-hidden">
+                {/* ── Stats hero ──────────────────────────────────── */}
+                {(() => {
+                  const txs = statements.flatMap(s => s.transactions);
+                  const dates = txs
+                    .map(t => new Date(t.completionTime))
+                    .filter(d => !isNaN(d.getTime()));
+                  const minDate = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : null;
+                  const maxDate = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : null;
+                  const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                  const dateRange = minDate && maxDate
+                    ? fmt(minDate) === fmt(maxDate) ? fmt(minDate) : `${fmt(minDate)} – ${fmt(maxDate)}`
+                    : null;
+
+                  const totalIn = txs.reduce((s, t) => s + (t.paidIn ?? 0), 0);
+                  const totalOut = txs.reduce((s, t) => s + (t.withdrawn ?? 0), 0);
+                  const totalCharges = statements.reduce((s, st) => s + st.totalCharges, 0);
+
+                  const abbr = (n: number) => {
+                    if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}M`;
+                    if (n >= 1_000) return `${(n / 1_000).toLocaleString("en-US", { maximumFractionDigits: 1 })}K`;
+                    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+                  };
+
+                  return (
+                    <div className="text-center pt-2 pb-2">
+                      <NumberFlow
+                        value={statements[0].transactions.length}
+                        format={{ useGrouping: true }}
+                        className="text-7xl font-bold tracking-tight leading-none"
+                      />
+                      <p className="text-muted-foreground mt-3 text-sm">
+                        transaction{statements[0].transactions.length !== 1 ? "s" : ""} extracted
+                        {files.length > 1 ? ` from ${files.length} statements` : ""}
+                      </p>
+                      {dateRange && (
+                        <p className="text-xs text-muted-foreground/60 mt-1">{dateRange}</p>
+                      )}
+                      {(totalIn > 0 || totalOut > 0) && (
+                        <div className="flex items-center justify-center gap-3 mt-3 text-xs">
+                          {totalIn > 0 && (
+                            <span className="text-green-500/90">
+                              ↑ KES {abbr(totalIn)}
+                            </span>
+                          )}
+                          {totalIn > 0 && totalOut > 0 && (
+                            <span className="text-muted-foreground/30">·</span>
+                          )}
+                          {totalOut > 0 && (
+                            <span className="text-red-400/80">
+                              ↓ KES {abbr(totalOut)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {totalCharges > 0 && (
+                        <p className="text-xs text-muted-foreground/50 mt-1">
+                          KES {totalCharges.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })} in charges
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* ── Primary export action ───────────────────────── */}
+                <Button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  size="lg"
+                  className="w-full"
+                >
+                  {isDownloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                      Exporting…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Export as {ExportService.getFormatDisplayName(exportFormat)}
+                    </>
+                  )}
+                </Button>
+
+                {/* ── Post-save confirmation chip ─────────────────── */}
+                {downloadSuccess && savedFilePath && (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+                      {savedFilePath}
+                    </span>
+                    <Button
+                      onClick={handleOpenFile}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs shrink-0"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      Open
+                    </Button>
+                  </div>
+                )}
+
+                {/* ── Error ───────────────────────────────────────── */}
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                    <p className="text-destructive text-sm">{error}</p>
+                  </div>
+                )}
+
+                {/* ── Transaction Preview ─────────────────────────── */}
+                <div className="border border-border/60 rounded-lg overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setPreviewExpanded((v) => !v)}
@@ -591,154 +701,134 @@ function App() {
                   >
                     <div className="flex items-center gap-2">
                       <Table2 className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Preview Transactions</span>
+                      <span className="text-sm font-medium">Preview transactions</span>
                       <span className="text-xs text-muted-foreground">
-                        ({statements[0].transactions.length} total)
+                        ({statements[0].transactions.length.toLocaleString()})
                       </span>
                     </div>
-                    {previewExpanded
-                      ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                      previewExpanded && "rotate-180"
+                    )} />
                   </button>
 
-                  {previewExpanded && (
-                    <div className="border-t border-border/60 overflow-x-auto max-h-64">
-                      <table className="w-full text-xs">
-                        <thead className="sticky top-0 bg-muted/60">
-                          <tr>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Details</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Paid In</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Withdrawn</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {statements[0].transactions.slice(0, 10).map((tx, i) => (
-                            <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                              <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">{tx.completionTime}</td>
-                              <td className="px-3 py-1.5 max-w-[180px] truncate">{tx.details}</td>
-                              <td className="px-3 py-1.5 text-right text-green-600 dark:text-green-400">
-                                {tx.paidIn ? tx.paidIn.toLocaleString() : ""}
-                              </td>
-                              <td className="px-3 py-1.5 text-right text-red-500 dark:text-red-400">
-                                {tx.withdrawn ? tx.withdrawn.toLocaleString() : ""}
-                              </td>
-                              <td className="px-3 py-1.5 text-right font-medium">{tx.balance.toLocaleString()}</td>
+                  <div className={cn(
+                    "grid transition-[grid-template-rows] duration-200 ease-out",
+                    previewExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  )}>
+                    <div className="overflow-hidden">
+                      <div className="border-t border-border/60 overflow-x-auto max-h-64">
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-muted/60">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Details</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Paid In</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Withdrawn</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {statements[0].transactions.length > 10 && (
-                        <p className="text-xs text-center text-muted-foreground py-2 bg-muted/20 border-t border-border/40">
-                          Showing 10 of {statements[0].transactions.length} — export to see all
-                        </p>
-                      )}
+                          </thead>
+                          <tbody>
+                            {statements[0].transactions.slice(0, 10).map((tx, i) => (
+                              <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                                <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">{tx.completionTime}</td>
+                                <td className="px-3 py-1.5 max-w-[180px] truncate">{tx.details}</td>
+                                <td className="px-3 py-1.5 text-right text-green-600 dark:text-green-400">
+                                  {tx.paidIn ? tx.paidIn.toLocaleString() : ""}
+                                </td>
+                                <td className="px-3 py-1.5 text-right text-red-500 dark:text-red-400">
+                                  {tx.withdrawn ? tx.withdrawn.toLocaleString() : ""}
+                                </td>
+                                <td className="px-3 py-1.5 text-right font-medium">{tx.balance.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {statements[0].transactions.length > 10 && (
+                          <p className="text-xs text-center text-muted-foreground py-2 bg-muted/20 border-t border-border/40">
+                            Showing 10 of {statements[0].transactions.length} — export to see all
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                {/* ── Export Options ──────────────────────────────── */}
-                <div className="mb-4">
-                  <ExportOptions
-                    exportFormat={exportFormat}
-                    exportOptions={exportOptions}
-                    statement={statements[0]}
-                    onFormatChange={handleFormatChange}
-                    onOptionsChange={handleOptionsChange}
-                  />
-                </div>
-
-                {/* ── Action Buttons ──────────────────────────────── */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center mb-5">
-                  {/* Export is always visible so users can re-export after changing format/options */}
-                  <Button
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    size="lg"
-                    className="px-6"
-                  >
-                    {isDownloading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current" />
-                        Preparing Export...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-5 h-5" />
-                        Export as {ExportService.getFormatDisplayName(exportFormat)}
-                      </>
-                    )}
-                  </Button>
-
-                  {/* Open File appears only after a successful save */}
-                  {downloadSuccess && savedFilePath && (
-                    <Button
-                      onClick={handleOpenFile}
-                      variant="outline"
-                      size="lg"
-                      className="px-6 text-foreground"
-                    >
-                      <ExternalLink className="w-5 h-5" />
-                      Open File
-                    </Button>
-                  )}
-
-                  <Button
-                    onClick={handleReset}
-                    variant="outline"
-                    size="lg"
-                    className="px-6 text-foreground"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    Start Again
-                  </Button>
-                </div>
-
-                <div className="pt-3 border-t border-border space-y-3">
-                  <p className="text-xs text-center truncate">
-                    File: {exportFileName}
-                  </p>
-                  {downloadSuccess && savedFilePath && (
-                    <p className="text-xs text-center mt-1 truncate">
-                      Saved to: {savedFilePath}
-                    </p>
-                  )}
-
-                  {/* Feedback Link */}
-                  <div className="flex items-center justify-center gap-2 pt-2">
-                    <button
-                      onClick={handleOpenFeedback}
-                      className="inline-flex items-center gap-1.5 text-xs cursor-pointer hover:text-primary transition-colors"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Share feedback or report an issue
-                    </button>
                   </div>
                 </div>
+
+                {/* ── Customize export (collapsible, closed by default) */}
+                <div className="border border-border/60 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOptionsExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Customize export</span>
+                    </div>
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                      optionsExpanded && "rotate-180"
+                    )} />
+                  </button>
+
+                  <div className={cn(
+                    "grid transition-[grid-template-rows] duration-200 ease-out",
+                    optionsExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  )}>
+                    <div className="overflow-hidden">
+                      <div className="border-t border-border/60 p-4">
+                        <ExportOptions
+                          exportFormat={exportFormat}
+                          exportOptions={exportOptions}
+                          statement={statements[0]}
+                          onFormatChange={handleFormatChange}
+                          onOptionsChange={handleOptionsChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Tertiary actions ─────────────────────────────── */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={handleOpenFeedback}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Share feedback
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Start over
+                  </button>
+                </div>
+
               </div>
             ) : null}
           </div>
         </main>
 
-        <footer className="flex-shrink-0 text-center text-xs border-t py-3 mt-4 sticky bottom-0 ">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p>
+        <footer className="flex-shrink-0 py-3">
+          <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+            <span>
               Built by{" "}
               <a
                 href={URLS.TWITTER}
-                className="text-green-500 hover:text-green-500/80 font-medium transition-colors"
+                className="hover:text-foreground transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 @davidamunga
               </a>
-            </p>
-            <div className="flex items-center gap-3">
-              {appVersion && <span className="">v{appVersion}</span>}
-              <UpdateChecker showButton={true} />
-              <ThemeToggle />
-            </div>
+            </span>
+            <span className="text-muted-foreground/30">·</span>
+            {appVersion && <span>v{appVersion}</span>}
+            <UpdateChecker showButton={true} iconOnly={true} />
+            <ThemeToggle />
           </div>
         </footer>
       </div>

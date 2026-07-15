@@ -154,14 +154,14 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 flex-1">
       {/* Drop zone */}
       <div
         className={cn(
-          "relative rounded-xl transition-all duration-200 cursor-pointer overflow-hidden",
+          "relative rounded-xl transition-all duration-200 cursor-pointer overflow-hidden flex-1",
           dragActive
             ? "border-2 border-primary bg-primary/8 scale-[1.01]"
-            : "border-2 border-dashed border-border hover:border-primary/60 hover:bg-muted/30"
+            : "border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/20"
         )}
         tabIndex={0}
         role="button"
@@ -169,24 +169,17 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         onClick={handleDropZoneClick}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleButtonClick(); }}
       >
-        <div className="flex flex-col items-center justify-center gap-4 px-8 py-10 text-center">
+        <div className="flex flex-col items-center justify-center gap-4 px-8 py-8 h-full text-center">
           {/* Icon */}
-          <div
+          <FileUp
             className={cn(
-              "rounded-2xl p-4 transition-all duration-200",
+              "w-10 h-10 transition-all duration-200",
               dragActive
-                ? "bg-primary/15 text-primary scale-110"
-                : "bg-muted/60 text-muted-foreground"
+                ? "text-primary scale-110"
+                : "text-muted-foreground/50"
             )}
-          >
-            <FileUp
-              className={cn(
-                "w-8 h-8 transition-all duration-200",
-                dragActive && "text-primary"
-              )}
-              strokeWidth={1.5}
-            />
-          </div>
+            strokeWidth={1.25}
+          />
 
           {/* Text */}
           <div className="space-y-1.5">
@@ -197,8 +190,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             </h3>
             <p className="text-sm text-muted-foreground">
               {dragActive
-                ? "Drop to start converting your statements"
-                : "Supports single and multiple files — drag & drop or browse"}
+                ? "Drop to start converting"
+                : "Single or multiple files · password-protected PDFs supported"}
             </p>
           </div>
 
@@ -219,7 +212,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                   Loading…
                 </>
               ) : (
-                "Browse PDF Files"
+                "Browse Files"
               )}
             </Button>
           )}

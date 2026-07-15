@@ -42,65 +42,72 @@ interface ExportOptionsProps {
   onOptionsChange: (options: ExportOptionsType) => void;
 }
 
-const SHEET_OPTIONS = [
+const SHEET_GROUPS = [
   {
-    key: "includeChargesSheet" as keyof ExportOptionsType,
-    name: "Charges & Fees",
-    description: "Separate sheet with all transaction charges and fees",
+    label: "Data",
+    description: "Split your transactions into separate sheets",
+    options: [
+      {
+        key: "includeMoneyInSheet" as keyof ExportOptionsType,
+        name: "Money In",
+        description: "All transactions where money was received",
+      },
+      {
+        key: "includeMoneyOutSheet" as keyof ExportOptionsType,
+        name: "Money Out",
+        description: "All transactions where money was spent",
+      },
+      {
+        key: "includeChargesSheet" as keyof ExportOptionsType,
+        name: "Charges & Fees",
+        description: "All M-PESA transaction charges and fees",
+      },
+    ],
   },
   {
-    key: "includeSummarySheet" as keyof ExportOptionsType,
-    name: "Financial Summary",
-    description:
-      "Comprehensive financial analysis with cash flow, spending patterns, and insights",
-  },
-  {
-    key: "includeBreakdownSheet" as keyof ExportOptionsType,
-    name: "Monthly & Weekly",
-    description:
-      "Pivot-like table with monthly and weekly aggregations showing inflows, outflows, net change, and average transaction size",
-  },
-  {
-    key: "includeDailyBalanceSheet" as keyof ExportOptionsType,
-    name: "Daily Balance",
-    description:
-      "Day-by-day balance tracker showing highest and lowest balances with spending pattern insights",
-  },
-  {
-    key: "includeAmountDistributionSheet" as keyof ExportOptionsType,
-    name: "Amount Distribution",
-    description:
-      "Groups transactions by amount ranges (e.g., <100 KES, 100-500 KES, >500 KES), showing counts, totals, and percentages for inflows and outflows separately.",
-  },
-  {
-    key: "includeTopContactsSheet" as keyof ExportOptionsType,
-    name: "Top Contacts",
-    description:
-      "Top 20 people/entities you send money to and receive money from, with totals and transaction counts.",
-  },
-  {
-    key: "includeMoneyInSheet" as keyof ExportOptionsType,
-    name: "Money In",
-    description: "Separate sheet with all transactions where money was received",
-  },
-  {
-    key: "includeMoneyOutSheet" as keyof ExportOptionsType,
-    name: "Money Out",
-    description: "Separate sheet with all transactions where money was spent",
-  },
-  {
-    key: "includeRecurringTransactionsSheet" as keyof ExportOptionsType,
-    name: "Recurring",
-    description:
-      "Detects counterparties you transact with repeatedly (3+ times), shows frequency, amount pattern, and predicts the next expected transaction date",
-  },
-  {
-    key: "includeTimeOfDaySheet" as keyof ExportOptionsType,
-    name: "Time of Day",
-    description:
-      "Breaks down transactions by hour of day and time period (Night/Morning/Afternoon/Evening), showing money in, money out, and net flow per slot",
+    label: "Analytics",
+    description: "Summaries and patterns across your transactions",
+    options: [
+      {
+        key: "includeSummarySheet" as keyof ExportOptionsType,
+        name: "Financial Summary",
+        description: "Cash flow, spending patterns, and key financial insights",
+      },
+      {
+        key: "includeBreakdownSheet" as keyof ExportOptionsType,
+        name: "Monthly & Weekly",
+        description: "Inflows, outflows, and net change aggregated by month and week",
+      },
+      {
+        key: "includeDailyBalanceSheet" as keyof ExportOptionsType,
+        name: "Daily Balance",
+        description: "Day-by-day balance tracker with highest and lowest points",
+      },
+      {
+        key: "includeTopContactsSheet" as keyof ExportOptionsType,
+        name: "Top Contacts",
+        description: "Top 20 people/entities you send and receive money from",
+      },
+      {
+        key: "includeRecurringTransactionsSheet" as keyof ExportOptionsType,
+        name: "Recurring",
+        description: "Counterparties you transact with 3+ times, with predicted next date",
+      },
+      {
+        key: "includeAmountDistributionSheet" as keyof ExportOptionsType,
+        name: "Amount Distribution",
+        description: "Transactions grouped by amount ranges (e.g. <100, 100–500, >500 KES)",
+      },
+      {
+        key: "includeTimeOfDaySheet" as keyof ExportOptionsType,
+        name: "Time of Day",
+        description: "Transaction activity by hour — night, morning, afternoon, evening",
+      },
+    ],
   },
 ];
+
+const SHEET_OPTIONS = SHEET_GROUPS.flatMap((g) => g.options);
 
 export default function ExportOptions({
   exportFormat,
@@ -392,7 +399,7 @@ export default function ExportOptions({
 
       {/* ── Additional Sheets (XLSX only) ───────────── */}
       {exportFormat === ExportFormat.XLSX && (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Additional Sheets
@@ -408,39 +415,44 @@ export default function ExportOptions({
               }}
               className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
             >
-              {allSheetsSelected ? "Deselect All" : "Select All"}
+              {allSheetsSelected ? "Deselect all" : "Select all"}
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {SHEET_OPTIONS.map((option) => {
-              const isSelected = Boolean(exportOptions[option.key]);
-              return (
-                <Tooltip key={option.key}>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleOptionChange(option.key, !isSelected)
-                        }
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none",
-                          isSelected
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
-                        )}
-                      >
-                        {option.name}
-                      </button>
-                    }
-                  />
-                  <TooltipContent className="max-w-xs">
-                    <p>{option.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
+          <div className="space-y-3">
+            {SHEET_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="text-xs text-muted-foreground mb-1.5">{group.label}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.options.map((option) => {
+                    const isSelected = Boolean(exportOptions[option.key]);
+                    return (
+                      <Tooltip key={option.key}>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              onClick={() => handleOptionChange(option.key, !isSelected)}
+                              className={cn(
+                                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer select-none",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
+                              )}
+                            >
+                              {option.name}
+                            </button>
+                          }
+                        />
+                        <TooltipContent className="max-w-xs">
+                          <p>{option.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

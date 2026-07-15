@@ -190,12 +190,21 @@ jobs:
         if: matrix.test_type == 'security'
         run: |
           echo "🔒 Running security audit..."
-          pnpm audit --audit-level moderate || {
-            echo "⚠️ Security vulnerabilities found. Please review and fix."
-            echo "Run 'pnpm audit --fix' to automatically fix issues where possible."
-            exit 1
-          }
-          echo "✅ No security vulnerabilities found"
+          AUDIT_EXIT=0
+          AUDIT_OUT=$(pnpm audit --audit-level moderate 2>&1) || AUDIT_EXIT=$?
+          echo "$AUDIT_OUT"
+          if [ $AUDIT_EXIT -ne 0 ]; then
+            if echo "$AUDIT_OUT" | grep -qE "410|ERR_PNPM_AUDIT_BAD_RESPONSE|endpoint is being retired"; then
+              echo "⚠️ npm audit endpoint unavailable (retired July 2026). Skipping."
+              echo "💡 Dependabot alerts remain active for ongoing security coverage."
+            else
+              echo "⚠️ Security vulnerabilities found. Please review and fix."
+              echo "Run 'pnpm audit --fix' to automatically fix issues where possible."
+              exit 1
+            fi
+          else
+            echo "✅ No security vulnerabilities found"
+          fi
 
   release-branch-validation:
     name: Release Branch Validation
