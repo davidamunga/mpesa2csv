@@ -495,9 +495,9 @@ function App() {
       <div className="flex-1 mx-auto px-4 py-4 flex flex-col max-w-4xl w-full overflow-y-auto">
         <main className={cn(
           "flex-1 flex justify-center py-4",
-          (status === FileStatus.IDLE || status === FileStatus.LOADING || status === FileStatus.ERROR)
-            ? ""
-            : "items-center" 
+          (status === FileStatus.PROCESSING || status === FileStatus.PROTECTED)
+            ? "items-center"
+            : ""
         )}>
           <div className={cn(
             "w-full max-w-2xl transition-all duration-300 ease-in-out",
@@ -581,25 +581,70 @@ function App() {
               <div className="space-y-3 transition-all duration-300 max-w-lg mx-auto w-full">
 
                 {/* ── Stats hero ──────────────────────────────────── */}
-                <div className="text-center pt-6 pb-2">
-                  <NumberFlow
-                    value={statements[0].transactions.length}
-                    format={{ useGrouping: true }}
-                    className="text-7xl font-bold tracking-tight leading-none"
-                  />
-                  <p className="text-muted-foreground mt-3 text-sm">
-                    transaction{statements[0].transactions.length !== 1 ? "s" : ""} extracted
-                    {files.length > 1 ? ` from ${files.length} statements` : ""}
-                  </p>
-                  {statements[0].totalCharges > 0 && (
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      KES {statements[0].totalCharges.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })} in charges
-                    </p>
-                  )}
-                </div>
+                {(() => {
+                  const txs = statements.flatMap(s => s.transactions);
+                  const dates = txs
+                    .map(t => new Date(t.completionTime))
+                    .filter(d => !isNaN(d.getTime()));
+                  const minDate = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : null;
+                  const maxDate = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : null;
+                  const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                  const dateRange = minDate && maxDate
+                    ? fmt(minDate) === fmt(maxDate) ? fmt(minDate) : `${fmt(minDate)} – ${fmt(maxDate)}`
+                    : null;
+
+                  const totalIn = txs.reduce((s, t) => s + (t.paidIn ?? 0), 0);
+                  const totalOut = txs.reduce((s, t) => s + (t.withdrawn ?? 0), 0);
+                  const totalCharges = statements.reduce((s, st) => s + st.totalCharges, 0);
+
+                  const abbr = (n: number) => {
+                    if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}M`;
+                    if (n >= 1_000) return `${(n / 1_000).toLocaleString("en-US", { maximumFractionDigits: 1 })}K`;
+                    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+                  };
+
+                  return (
+                    <div className="text-center pt-2 pb-2">
+                      <NumberFlow
+                        value={statements[0].transactions.length}
+                        format={{ useGrouping: true }}
+                        className="text-7xl font-bold tracking-tight leading-none"
+                      />
+                      <p className="text-muted-foreground mt-3 text-sm">
+                        transaction{statements[0].transactions.length !== 1 ? "s" : ""} extracted
+                        {files.length > 1 ? ` from ${files.length} statements` : ""}
+                      </p>
+                      {dateRange && (
+                        <p className="text-xs text-muted-foreground/60 mt-1">{dateRange}</p>
+                      )}
+                      {(totalIn > 0 || totalOut > 0) && (
+                        <div className="flex items-center justify-center gap-3 mt-3 text-xs">
+                          {totalIn > 0 && (
+                            <span className="text-green-500/90">
+                              ↑ KES {abbr(totalIn)}
+                            </span>
+                          )}
+                          {totalIn > 0 && totalOut > 0 && (
+                            <span className="text-muted-foreground/30">·</span>
+                          )}
+                          {totalOut > 0 && (
+                            <span className="text-red-400/80">
+                              ↓ KES {abbr(totalOut)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {totalCharges > 0 && (
+                        <p className="text-xs text-muted-foreground/50 mt-1">
+                          KES {totalCharges.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })} in charges
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* ── Primary export action ───────────────────────── */}
                 <Button
@@ -767,24 +812,23 @@ function App() {
           </div>
         </main>
 
-        <footer className="flex-shrink-0 text-center text-xs border-t py-3 mt-4 sticky bottom-0 ">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p>
+        <footer className="flex-shrink-0 py-3">
+          <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+            <span>
               Built by{" "}
               <a
                 href={URLS.TWITTER}
-                className="text-green-500 hover:text-green-500/80 font-medium transition-colors"
+                className="hover:text-foreground transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 @davidamunga
               </a>
-            </p>
-            <div className="flex items-center gap-3">
-              {appVersion && <span className="">v{appVersion}</span>}
-              <UpdateChecker showButton={true} iconOnly={true} />
-              <ThemeToggle />
-            </div>
+            </span>
+            <span className="text-muted-foreground/30">·</span>
+            {appVersion && <span>v{appVersion}</span>}
+            <UpdateChecker showButton={true} iconOnly={true} />
+            <ThemeToggle />
           </div>
         </footer>
       </div>
