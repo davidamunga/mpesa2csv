@@ -495,15 +495,19 @@ function App() {
       <div className="flex-1 mx-auto px-4 py-4 flex flex-col max-w-4xl w-full overflow-y-auto">
         <main className={cn(
           "flex-1 flex justify-center py-4",
-          status === FileStatus.SUCCESS
-            ? "items-start pt-10"
-            : "items-center"
+          (status === FileStatus.IDLE || status === FileStatus.LOADING || status === FileStatus.ERROR)
+            ? ""
+            : "items-center" 
         )}>
-          <div className="w-full max-w-2xl transition-all duration-300 ease-in-out">
+          <div className={cn(
+            "w-full max-w-2xl transition-all duration-300 ease-in-out",
+            (status === FileStatus.IDLE || status === FileStatus.LOADING || status === FileStatus.ERROR)
+              && "flex flex-col flex-1"
+          )}>
             {status === FileStatus.IDLE ||
             status === FileStatus.LOADING ||
             status === FileStatus.ERROR ? (
-              <div className="space-y-3 transition-all duration-300">
+              <div className="flex flex-col gap-3 flex-1 transition-all duration-300">
                 <FileUploader
                   onFilesSelected={handleFilesSelected}
                   status={status}

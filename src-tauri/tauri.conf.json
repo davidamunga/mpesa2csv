@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "mpesa2csv - Convert M-PESA Statements to CSV/Excel",
-        "width": 750,
-        "height": 850,
+        "width": 600,
+        "height": 550,
         "minWidth": 500,
         "minHeight": 400,
         "resizable": true
@@ -68,8 +68,8 @@
           "y": 170
         },
         "windowSize": {
-          "width": 750,
-          "height": 850
+          "width": 600,
+          "height": 550
         }
       }
     },
