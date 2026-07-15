@@ -1,5 +1,17 @@
 # mpesa2csv
 
+## 1.0.0
+
+### Major Changes
+
+- [#70](https://github.com/davidamunga/mpesa2csv/pull/70) [`9e0ac87`](https://github.com/davidamunga/mpesa2csv/commit/9e0ac873f21a1fb7e76099a3ed34f3e0caa10527) Thanks [@davidamunga](https://github.com/davidamunga)! - Success screen now shows a financial snapshot — date range covered, total money in, total money out, and charges — all derived from the parsed statement before you export. Window height reduced from 850 → 650px, footer simplified to a single line, and dead-zone layout issues resolved.
+
+### Patch Changes
+
+- [#69](https://github.com/davidamunga/mpesa2csv/pull/69) [`0395f66`](https://github.com/davidamunga/mpesa2csv/commit/0395f66944e52e8514257f1a81a8adfee8cdba88) Thanks [@davidamunga](https://github.com/davidamunga)! - Reduce initial JS bundle from 1 466 kB to 487 kB (−67%) by removing 10 unused packages, lazy-loading ExcelJS via dynamic import
+
+- [#70](https://github.com/davidamunga/mpesa2csv/pull/70) [`6c45724`](https://github.com/davidamunga/mpesa2csv/commit/6c45724c32db6fb9d2b54f2af3468af7b8eb3690) Thanks [@davidamunga](https://github.com/davidamunga)! - improved success state ui
+
 ## 0.14.0
 
 ### Minor Changes
