@@ -83,9 +83,15 @@ jobs:
           VALIDATION_PASSED="true"
           VALIDATION_ERRORS=""
 
-          if ! pnpm audit --audit-level moderate; then
-            VALIDATION_ERRORS="${VALIDATION_ERRORS}Security vulnerabilities found. "
-            VALIDATION_PASSED="false"
+          AUDIT_OUT=$(pnpm audit --audit-level moderate 2>&1)
+          AUDIT_EXIT=$?
+          if [ $AUDIT_EXIT -ne 0 ]; then
+            if echo "$AUDIT_OUT" | grep -qE "410|ERR_PNPM_AUDIT_BAD_RESPONSE|endpoint is being retired"; then
+              echo "⚠️ npm audit endpoint unavailable (retired July 2026). Skipping security check."
+            else
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}Security vulnerabilities found. "
+              VALIDATION_PASSED="false"
+            fi
           fi
 
           VERSION=$(node -p "require('./package.json').version")
