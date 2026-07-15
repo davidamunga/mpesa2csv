@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { ask, message } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
@@ -91,17 +92,21 @@ export function UpdateChecker({
       await update.downloadAndInstall();
       await relaunch();
     } catch (error) {
-      // Log error for debugging purposes
       if (error instanceof Error) {
         console.error("Update installation failed:", error.message);
       }
-      await message(
-        "Failed to download and install the update. Please try again later.",
+      const openManually = await ask(
+        "The automatic update couldn't be installed.\n\nYou can download the latest version directly from GitHub — it only takes a moment.",
         {
           title: "Update Failed",
           kind: "error",
+          okLabel: "Download Manually",
+          cancelLabel: "Dismiss",
         }
       );
+      if (openManually) {
+        await openUrl(URLS.RELEASES);
+      }
     }
   }, []);
 

@@ -5,6 +5,7 @@ export const TIMEOUTS = {
 export const URLS = {
   CHANGELOG:
     "https://raw.githubusercontent.com/DavidAmunga/mpesa2csv/main/CHANGELOG.md",
+  RELEASES: "https://github.com/DavidAmunga/mpesa2csv/releases/latest",
   FEEDBACK: "https://mpesa2csv.com/feedback",
   TWITTER: "https://twitter.com/davidamunga_",
 } as const;
