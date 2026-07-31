@@ -1,5 +1,13 @@
 # mpesa2csv
 
+## 1.0.2
+
+### Patch Changes
+
+- [#74](https://github.com/davidamunga/mpesa2csv/pull/74) [`ea1f574`](https://github.com/davidamunga/mpesa2csv/commit/ea1f57402c44706531c8aa6ac163865322fe463e) Thanks [@davidamunga](https://github.com/davidamunga)! - Make changelog and GitHub release notes more professional by dropping author “Thanks!” attributions, using summary-first entries, and simplifying the release body.
+
+- [#74](https://github.com/davidamunga/mpesa2csv/pull/74) [`ea1f574`](https://github.com/davidamunga/mpesa2csv/commit/ea1f57402c44706531c8aa6ac163865322fe463e) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix password-protected PDFs failing with an empty Tabula error instead of showing the unlock prompt, by capturing Java stderr/stdout and improving password-error detection and the protected-file UI.
+
 ## 1.0.1
 
 ### Patch Changes
@@ -25,11 +33,11 @@
 ### Minor Changes
 
 - - Clickable drop zone ([#67](https://github.com/davidamunga/mpesa2csv/pull/67))
- - Cancel button during processing
- - Transaction preview before export
- - Re-export without Start Again
- - XLSX blob only on Export click
- - Visible webhook result badge.
+- Cancel button during processing
+- Transaction preview before export
+- Re-export without Start Again
+- XLSX blob only on Export click
+- Visible webhook result badge.
 
 ### Patch Changes
 
@@ -136,10 +144,10 @@
 
 - 619f6e7: feat: added extra export formats
 
- - JSON Export - Exports transactions in JSON format
- - OFX Export - Exports transactions in OFX (Open Financial Exchange) format (Experimental)
- - QFX Export - Exports transactions in QFX (Quicken Financial) format (Experimental)
- - QIF Export - Exports transactions in QIF (Quicken Interchange) format (Experimental)
+- JSON Export - Exports transactions in JSON format
+- OFX Export - Exports transactions in OFX (Open Financial Exchange) format (Experimental)
+- QFX Export - Exports transactions in QFX (Quicken Financial) format (Experimental)
+- QIF Export - Exports transactions in QIF (Quicken Interchange) format (Experimental)
 
 ## 0.7.5
 
@@ -262,10 +270,10 @@
 
 - 68e265d: Add optional Charges/Fees sheet to Excel exports
 
- - Add new export option to include a separate "Charges & Fees" sheet when exporting to Excel
- - Filter and categorize all transactions containing "charge" in the details
- - Display charges with date, amount, and balance information
- - Include summary totals for total charges and number of charge transactions
+- Add new export option to include a separate "Charges & Fees" sheet when exporting to Excel
+- Filter and categorize all transactions containing "charge" in the details
+- Display charges with date, amount, and balance information
+- Include summary totals for total charges and number of charge transactions
 
 ## 0.0.3
 
