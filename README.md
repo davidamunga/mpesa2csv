@@ -12,7 +12,7 @@
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/DavidAmunga/mpesa2csv/blob/main/CONTRIBUTING.md)
   [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri-24c8db.svg)](https://tauri.app/)
 
-  Free desktop app that unlocks and converts Safaricom M-PESA statement PDFs to CSV, Excel, JSON, and more — entirely offline.
+  Free desktop app that unlocks and converts M-PESA Statement PDFs to CSV, Excel, JSON, and more — entirely offline.
 
   [Website](https://mpesa2csv.com) • [Download](https://github.com/DavidAmunga/mpesa2csv/releases/latest) • [Changelog](./CHANGELOG.md) • [Contributing](./CONTRIBUTING.md)
 
@@ -26,13 +26,13 @@
 
 ## Why
 
-Safaricom statements arrive as password-locked PDFs. mpesa2csv unlocks them on your machine, extracts the ledger, and exports a spreadsheet you can actually use — no upload, no account.
+M-PESA Statement PDFs arrive password-locked. mpesa2csv unlocks them on your machine, extracts the ledger, and exports a spreadsheet you can actually use — no upload, no account.
 
 ## Features
 
 ### Convert locally
 
-- Unlock password-protected Safaricom PDFs on device
+- Unlock password-protected M-PESA Statement PDFs on device
 - Personal and paybill statements
 - Batch convert multiple PDFs in one session
 - Preview transactions before you export
