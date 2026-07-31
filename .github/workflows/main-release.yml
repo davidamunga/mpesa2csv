@@ -551,73 +551,46 @@ jobs:
         shell: bash
         continue-on-error: false
         run: |
-          set +e  # Disable exit on error for this script
+          set +e
           VERSION="${{ needs.prepare-release.outputs.version }}"
 
           if [ -f "CHANGELOG.md" ]; then
-            # Extract the changelog section for the current version
+            # Extract this version's section; drop Changesets category headings
+            # so GitHub release notes read as a clean bullet list.
             CHANGELOG_CONTENT=$(awk -v version="$VERSION" '
-              /^## / { 
+              /^## / {
                 if (found) exit
                 if ($0 ~ "## .*" version) found=1
                 next
               }
               found && /^## / { exit }
+              found && /^### / { next }
               found { print }
-            ' CHANGELOG.md | sed '/^$/d' | head -30)
-            
-            # Get previous version for comparison link
+            ' CHANGELOG.md | sed '/^[[:space:]]*$/d')
+
             PREVIOUS_VERSION=$(awk '/^## / && !/'"$VERSION"'/ { print $2; exit }' CHANGELOG.md)
-            
+
             if [ -n "$CHANGELOG_CONTENT" ]; then
-              # Analyze change types - handle both "feat:" and "hash: feat:" formats
-              FEATURES=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?feat:" | wc -l | tr -d ' ')
-              FIXES=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?fix:" | wc -l | tr -d ' ')
-              BREAKING=$(echo "$CHANGELOG_CONTENT" | grep -E "BREAKING CHANGE|!" | wc -l | tr -d ' ')
-              DOCS=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?docs:" | wc -l | tr -d ' ')
-              PERF=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?perf:" | wc -l | tr -d ' ')
-              REFACTOR=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?refactor:" | wc -l | tr -d ' ')
-              CHORE=$(echo "$CHANGELOG_CONTENT" | grep -E "(^- [a-f0-9]+: )?chore:" | wc -l | tr -d ' ')
-              SECURITY=$(echo "$CHANGELOG_CONTENT" | grep -i "security\|vulnerability\|cve\|exploit" | wc -l | tr -d ' ')
-              
-              # Count total changes
-              TOTAL_CHANGES=$(echo "$CHANGELOG_CONTENT" | grep "^-" | wc -l | tr -d ' ')
-              
-              FORMATTED_CHANGELOG="$CHANGELOG_CONTENT"
-              
-              # Sanitize: remove all control characters except newline, escape backslashes and quotes
-              FORMATTED_CHANGELOG=$(printf '%s' "$FORMATTED_CHANGELOG" | LC_ALL=C tr -d '\000-\011\013-\037\177' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
-              
+              HAS_BREAKING="false"
+              if echo "$CHANGELOG_CONTENT" | grep -qiE 'breaking change|BREAKING'; then
+                HAS_BREAKING="true"
+              fi
+
+              FORMATTED_CHANGELOG=$(printf '%s' "$CHANGELOG_CONTENT" | LC_ALL=C tr -d '\000-\011\013-\037\177' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+
               echo "changelog<<EOF" >> $GITHUB_OUTPUT
               printf '%s\n' "$FORMATTED_CHANGELOG" >> $GITHUB_OUTPUT
               echo "EOF" >> $GITHUB_OUTPUT
-              
-              # Output change statistics
-              echo "features=$FEATURES" >> $GITHUB_OUTPUT
-              echo "fixes=$FIXES" >> $GITHUB_OUTPUT
-              echo "breaking=$BREAKING" >> $GITHUB_OUTPUT
-              echo "docs=$DOCS" >> $GITHUB_OUTPUT
-              echo "perf=$PERF" >> $GITHUB_OUTPUT
-              echo "refactor=$REFACTOR" >> $GITHUB_OUTPUT
-              echo "security=$SECURITY" >> $GITHUB_OUTPUT
-              echo "total_changes=$TOTAL_CHANGES" >> $GITHUB_OUTPUT
+              echo "has_breaking=$HAS_BREAKING" >> $GITHUB_OUTPUT
             else
               echo "changelog=See CHANGELOG.md for details." >> $GITHUB_OUTPUT
-              echo "features=0" >> $GITHUB_OUTPUT
-              echo "fixes=0" >> $GITHUB_OUTPUT
-              echo "breaking=0" >> $GITHUB_OUTPUT
-              echo "security=0" >> $GITHUB_OUTPUT
-              echo "total_changes=0" >> $GITHUB_OUTPUT
+              echo "has_breaking=false" >> $GITHUB_OUTPUT
             fi
             echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
           else
             echo "changelog=No changelog available." >> $GITHUB_OUTPUT
             echo "previous_version=0.0.2" >> $GITHUB_OUTPUT
-            echo "features=0" >> $GITHUB_OUTPUT
-            echo "fixes=0" >> $GITHUB_OUTPUT
-            echo "breaking=0" >> $GITHUB_OUTPUT
-            echo "security=0" >> $GITHUB_OUTPUT
-            echo "total_changes=0" >> $GITHUB_OUTPUT
+            echo "has_breaking=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate build timestamp
@@ -948,55 +921,25 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           name: "mpesa2csv ${{ needs.prepare-release.outputs.tag }}"
           body: |
-            ## What's New in v${{ needs.prepare-release.outputs.version }}
+            ## Changes
 
-            ${{ steps.changelog.outputs.total_changes > 0 && format('📊 **Release Summary**: {0} changes', steps.changelog.outputs.total_changes) || '' }}
-
-            ${{ steps.changelog.outputs.breaking > 0 && '> ⚠️ **BREAKING CHANGES**: This release contains breaking changes. Please review the changelog carefully before updating.' || '' }}
-
-            ${{ steps.changelog.outputs.security > 0 && '> 🔒 **SECURITY UPDATE**: This release includes important security fixes. We recommend updating as soon as possible.' || '' }}
+            ${{ steps.changelog.outputs.has_breaking == 'true' && '> **Breaking changes** — review the notes below before updating.' || '' }}
 
             ${{ steps.changelog.outputs.changelog }}
 
-            ${{ steps.changelog.outputs.features > 0 && steps.changelog.outputs.fixes > 0 && format('🎯 **Highlights**: This release brings {0} new features and fixes {1} bugs for a better user experience.', steps.changelog.outputs.features, steps.changelog.outputs.fixes) || '' }}
-            ${{ steps.changelog.outputs.features > 0 && steps.changelog.outputs.fixes == 0 && format('✨ **Feature Release**: Introducing {0} new features to enhance your workflow.', steps.changelog.outputs.features) || '' }}
-            ${{ steps.changelog.outputs.features == 0 && steps.changelog.outputs.fixes > 0 && format('🔧 **Maintenance Release**: This update focuses on stability with {0} bug fixes.', steps.changelog.outputs.fixes) || '' }}
+            ## Downloads
 
-            ---
+            | Platform | Architecture | File |
+            |----------|--------------|------|
+            | Windows | x64 | [Installer (.exe)](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_x64-setup.exe) |
+            | macOS | Apple Silicon | [Disk image (.dmg)](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_aarch64.dmg) |
+            | macOS | Intel | [Disk image (.dmg)](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_x64.dmg) |
+            | Linux | x64 | [Debian package (.deb)](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_amd64.deb) |
+            | Linux | x64 | [AppImage](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_amd64.AppImage) |
 
-            ## 📥 Download & Installation
+            Built `${{ steps.timestamp.outputs.build_time }}`. Installed copies can update automatically when this release is available.
 
-            Choose the appropriate download for your platform:
-
-            | Platform | Architecture | Download | Installation |
-            |----------|-------------|----------|--------------|
-            | **Windows** | x64 (Intel/AMD) | [📥 Download .exe](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_x64-setup.exe) | Run the installer and follow the setup wizard |
-            | **macOS** | Apple Silicon (M1/M2/M3) | [📥 Download .dmg](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_aarch64.dmg) | Open DMG and drag to Applications |
-            | **macOS** | Intel x64 | [📥 Download .dmg](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_x64.dmg) | Open DMG and drag to Applications |
-            | **Linux** | x64 (Ubuntu/Debian) | [📥 Download .deb](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_amd64.deb) | `sudo dpkg -i mpesa2csv_*.deb` |
-            | **Linux** | x64 (Portable) | [📥 Download .AppImage](https://github.com/DavidAmunga/mpesa2csv/releases/download/${{ needs.prepare-release.outputs.tag }}/mpesa2csv_${{ needs.prepare-release.outputs.version }}_amd64.AppImage) | `chmod +x mpesa2csv_*.AppImage && ./mpesa2csv_*.AppImage` |
-
-            ### 📊 Release Metadata
-
-            - **Version**: `${{ needs.prepare-release.outputs.version }}`
-            - **Build Date**: `${{ steps.timestamp.outputs.build_time }}`
-            - **Total Changes**: ${{ steps.changelog.outputs.total_changes }}
-            - **Platforms**: Windows, macOS (Intel + Apple Silicon), Linux
-            ${{ steps.changelog.outputs.breaking > 0 && format('- **Breaking Changes**: {0}', steps.changelog.outputs.breaking) || '' }}
-
-            ### 🔍 System Requirements
-
-            - **Windows**: Windows 10 version 1903 or later
-            - **macOS**: macOS 10.15 Catalina or later  
-            - **Linux**: Modern distribution with GTK 3.24+ and WebKit2GTK 4.1+
-
-            ### 🔄 Auto-Update
-
-            > **Note**: If you have a previous version installed, the app will automatically notify you when this update is available and guide you through the update process.
-
-            ---
-
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.changelog.outputs.previous_version || '0.0.2' }}...v${{ needs.prepare-release.outputs.version }}
+            **Full changelog:** https://github.com/${{ github.repository }}/compare/v${{ steps.changelog.outputs.previous_version || '0.0.2' }}...v${{ needs.prepare-release.outputs.version }}
           draft: false
           prerelease: false
           files: |

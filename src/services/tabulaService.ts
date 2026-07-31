@@ -51,8 +51,24 @@ export class TabulaService {
           error,
         );
       }
-      throw new Error(`Tabula extraction failed: ${error.message || error}`);
+      const message =
+        typeof error === "string"
+          ? error
+          : error?.message || String(error);
+      throw new Error(`Tabula extraction failed: ${message}`);
     }
+  }
+
+  /** True when a Tabula/backend error indicates the PDF needs a password. */
+  static isPasswordError(message: string | undefined): boolean {
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return (
+      lower.includes("password") ||
+      lower.includes("encrypted") ||
+      lower.includes("decrypt") ||
+      lower.includes("protected")
+    );
   }
 
   /**

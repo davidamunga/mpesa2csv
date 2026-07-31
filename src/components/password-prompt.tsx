@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { FileStatus } from "../types";
-import { Lock, Shield } from "lucide-react";
+import { FileText, Lock, Shield } from "lucide-react";
 import { cn } from "../lib/utils";
 import { PasswordInput } from "./ui/password-input";
 import { Button } from "./ui/button";
@@ -10,6 +10,8 @@ interface PasswordPromptProps {
   onSkip?: () => void;
   onReset?: () => void;
   status: FileStatus;
+  /** True while the current file is being decrypted — keeps this UI mounted. */
+  isUnlocking?: boolean;
   error?: string;
   currentFileName?: string;
   currentFileIndex?: number;
@@ -21,13 +23,25 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
   onSkip,
   onReset,
   status,
+  isUnlocking = false,
   error,
   currentFileName,
   currentFileIndex,
   totalFiles,
 }) => {
-  const [password, setPassword] = useState<string>("");
-  const isProcessing = status === FileStatus.PROCESSING;
+  const [password, setPassword] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const errorId = useId();
+  const isProcessing = isUnlocking || status === FileStatus.PROCESSING;
+  const isBatch = (totalFiles ?? 0) > 1;
+  const step = (currentFileIndex ?? 0) + 1;
+
+  useEffect(() => {
+    if (error) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [error]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,50 +51,74 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="rounded-2xl bg-muted/60 p-4 text-yellow-500">
-          <Lock className="size-8" strokeWidth={1.5} />
-        </div>
-
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold">Password protected PDF</h3>
-          {totalFiles && totalFiles > 1 ? (
+    <div className="flex flex-1 flex-col justify-center gap-6">
+      <header className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Lock className="size-4 shrink-0" strokeWidth={1.75} />
+              <h2 className="text-base font-semibold text-foreground">
+                Password protected PDF
+              </h2>
+            </div>
             <p className="text-sm text-muted-foreground">
-              File {(currentFileIndex ?? 0) + 1} of {totalFiles}
+              {isBatch
+                ? `File ${step} of ${totalFiles} — decrypts on this device only`
+                : "Decrypts on this device only — nothing is uploaded"}
             </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Enter the password to unlock and process this file
-            </p>
-          )}
+          </div>
         </div>
 
         {currentFileName && (
-          <span className="inline-block max-w-xs truncate rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
-            {currentFileName}
-          </span>
+          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+            <FileText
+              className="size-4 shrink-0 text-muted-foreground"
+              strokeWidth={1.5}
+            />
+            <p
+              className="min-w-0 truncate text-sm text-muted-foreground"
+              title={currentFileName}
+            >
+              {currentFileName}
+            </p>
+          </div>
         )}
-      </div>
+      </header>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="statement-password"
+            className="text-sm font-medium text-foreground"
+          >
+            Password
+          </label>
           <PasswordInput
+            id="statement-password"
+            ref={inputRef}
             className={cn(
-              error
-                ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
-                : ""
+              "h-10",
+              error &&
+                "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
             )}
-            placeholder="Enter password"
+            placeholder="Statement password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isProcessing}
             autoFocus
+            autoComplete="off"
+            spellCheck={false}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? errorId : "password-hint"}
           />
-          {error && (
-            <p className="text-xs text-destructive">{error}</p>
+          {error ? (
+            <p id={errorId} role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : (
+            <p id="password-hint" className="text-xs text-muted-foreground">
+              Often the OTP code used when requesting the statement or National ID (for old statements)
+            </p>
           )}
         </div>
 
@@ -91,46 +129,55 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
         >
           {isProcessing ? (
             <>
-              <div className="animate-spin h-4 w-4 border-b-2 border-current rounded-full" />
+              <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Unlocking…
             </>
           ) : (
-            "Unlock PDF"
+            "Unlock & process"
           )}
         </Button>
 
         {(onSkip || onReset) && (
-          <div className="flex gap-2">
+          <div className="flex items-center justify-center gap-1">
             {onSkip && (
               <Button
                 type="button"
-                variant="outline"
-                className="flex-1"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
                 onClick={onSkip}
                 disabled={isProcessing}
               >
-                Skip File
+                Skip file
               </Button>
+            )}
+            {onSkip && onReset && (
+              <span
+                aria-hidden
+                className="text-muted-foreground/40 select-none"
+              >
+                ·
+              </span>
             )}
             {onReset && (
               <Button
                 type="button"
-                variant="outline"
-                className="flex-1"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
                 onClick={onReset}
                 disabled={isProcessing}
               >
-                Restart
+                Start over
               </Button>
             )}
           </div>
         )}
       </form>
 
-      {/* Privacy note */}
       <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <Shield className="w-3.5 h-3.5 shrink-0" />
-        <span>Password is only used locally to decrypt the file</span>
+        <Shield className="size-3.5 shrink-0" strokeWidth={1.75} />
+        <span>Password never leaves this device</span>
       </div>
     </div>
   );

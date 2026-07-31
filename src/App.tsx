@@ -58,6 +58,8 @@ function App() {
   // Holds statements processed before a mid-batch password prompt so they
   // are not lost when handlePasswordSubmit runs (statements state is still []).
   const pendingStatements = useRef<MPesaStatement[]>([]);
+  // Keeps the password UI mounted (with Unlocking…) instead of jumping away.
+  const [isUnlocking, setIsUnlocking] = useState(false);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [appVersion, setAppVersion] = useState<string>("");
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
@@ -116,6 +118,7 @@ function App() {
     setFiles(selectedFiles);
     setStatus(FileStatus.LOADING);
     setError(undefined);
+    setIsUnlocking(false);
     setStatements([]);
     setCurrentFileIndex(0);
     setPreviewExpanded(false);
@@ -189,11 +192,7 @@ function App() {
         if (cancelRequested.current) {
           return { cancelled: true, fileIndex: i, processedStatements };
         }
-        if (
-          err.message?.includes("password") ||
-          err.message?.includes("encrypted") ||
-          err.message?.includes("protected")
-        ) {
+        if (TabulaService.isPasswordError(err.message)) {
           setStatus(FileStatus.PROTECTED);
           return { needsPassword: true, fileIndex: i, processedStatements };
         }
@@ -258,7 +257,7 @@ function App() {
   const handlePasswordSubmit = async (password: string) => {
     if (files.length === 0) return;
 
-    setStatus(FileStatus.PROCESSING);
+    setIsUnlocking(true);
     setError(undefined);
 
     try {
@@ -279,6 +278,8 @@ function App() {
 
       const nextIndex = currentFileIndex + 1;
       if (nextIndex < files.length) {
+        setIsUnlocking(false);
+        setStatus(FileStatus.PROCESSING);
         const result = await processFiles(files, nextIndex, updatedStatements);
         if (result?.needsPassword) {
           // Another file in the batch needs a password; persist current progress.
@@ -288,6 +289,7 @@ function App() {
           setError(result.error);
         }
       } else {
+        setIsUnlocking(false);
         const combinedStatement = combineStatements(updatedStatements);
         const fileName = ExportService.getFileName(
           combinedStatement,
@@ -298,8 +300,13 @@ function App() {
         setStatus(FileStatus.SUCCESS);
       }
     } catch (err: any) {
+      setIsUnlocking(false);
       setStatus(FileStatus.PROTECTED);
-      setError(err.message || "Incorrect password. Please try again.");
+      setError(
+        TabulaService.isPasswordError(err.message)
+          ? "Incorrect password. Please try again."
+          : err.message || "Incorrect password. Please try again."
+      );
     }
   };
 
@@ -338,6 +345,7 @@ function App() {
     setFiles([]);
     setStatus(FileStatus.IDLE);
     setError(undefined);
+    setIsUnlocking(false);
     setStatements([]);
     setCurrentFileIndex(0);
     pendingStatements.current = [];
@@ -361,6 +369,7 @@ function App() {
     setStatements([]);
     setCurrentFileIndex(0);
     pendingStatements.current = [];
+    setIsUnlocking(false);
     setError(undefined);
   };
 
@@ -501,8 +510,11 @@ function App() {
         )}>
           <div className={cn(
             "w-full max-w-2xl transition-all duration-300 ease-in-out",
-            (status === FileStatus.IDLE || status === FileStatus.LOADING || status === FileStatus.ERROR)
-              && "flex flex-col flex-1"
+            (status === FileStatus.IDLE ||
+              status === FileStatus.LOADING ||
+              status === FileStatus.ERROR ||
+              status === FileStatus.PROTECTED) &&
+              "flex flex-col flex-1"
           )}>
             {status === FileStatus.IDLE ||
             status === FileStatus.LOADING ||
@@ -519,12 +531,13 @@ function App() {
                 )}
               </div>
             ) : status === FileStatus.PROTECTED ? (
-              <div className="transition-all duration-300">
+              <div className="flex flex-1 flex-col transition-all duration-300">
                 <PasswordPrompt
                   onPasswordSubmit={handlePasswordSubmit}
                   onSkip={handleSkipFile}
                   onReset={handleReset}
                   status={status}
+                  isUnlocking={isUnlocking}
                   error={error}
                   currentFileName={files[currentFileIndex]?.name}
                   currentFileIndex={currentFileIndex}

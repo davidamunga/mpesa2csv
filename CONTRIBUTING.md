@@ -275,7 +275,11 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
    pnpm changeset
    ```
 
-2. **Follow the prompts** to describe your changes
+2. **Write a user-facing summary** — this becomes the changelog and GitHub release notes.
+   Prefer a complete sentence that explains the outcome for users, not a commit subject:
+
+   - Good: `Fix password-protected PDFs failing instead of showing the unlock prompt.`
+   - Avoid: `fix: password stuff` or thanking yourself in the summary
 
 3. **Commit the changeset** with your PR
 
