@@ -4,8 +4,6 @@
 
 ### Patch Changes
 
-- Make changelog and GitHub release notes more professional by dropping author “Thanks!” attributions, using summary-first entries, and simplifying the release body. ([#74](https://github.com/davidamunga/mpesa2csv/pull/74))
-
 - Fix password-protected PDFs failing with an empty Tabula error instead of showing the unlock prompt, by capturing Java stderr/stdout and improving password-error detection and the protected-file UI. ([#74](https://github.com/davidamunga/mpesa2csv/pull/74))
 
 ## 1.0.1
