@@ -40,6 +40,12 @@ interface ExportOptionsProps {
   statement: MPesaStatement;
   onFormatChange: (format: ExportFormat) => void;
   onOptionsChange: (options: ExportOptionsType) => void;
+  /** Open webhook panel on mount (marketing screenshot harness). */
+  forceWebhookOpen?: boolean;
+  /** Prefill webhook URL for screenshots. */
+  forceWebhookEndpoint?: string;
+  /** Show a webhook result badge/panel for screenshots. */
+  forceWebhookResult?: WebhookResult | null;
 }
 
 const SHEET_GROUPS = [
@@ -115,11 +121,16 @@ export default function ExportOptions({
   statement,
   onFormatChange,
   onOptionsChange,
+  forceWebhookOpen,
+  forceWebhookEndpoint,
+  forceWebhookResult,
 }: ExportOptionsProps) {
-  const [isWebhookOpen, setIsWebhookOpen] = useState(false);
-  const [endpoint, setEndpoint] = useState<string>("");
+  const [isWebhookOpen, setIsWebhookOpen] = useState(!!forceWebhookOpen);
+  const [endpoint, setEndpoint] = useState<string>(forceWebhookEndpoint || "");
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [result, setResult] = useState<WebhookResult | null>(null);
+  const [result, setResult] = useState<WebhookResult | null>(
+    forceWebhookResult ?? null
+  );
 
   const handleFormatChange = (value: ExportFormat | null) => {
     if (!value) return;

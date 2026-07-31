@@ -4,9 +4,9 @@
 
 ### Patch Changes
 
-- [#74](https://github.com/davidamunga/mpesa2csv/pull/74) [`ea1f574`](https://github.com/davidamunga/mpesa2csv/commit/ea1f57402c44706531c8aa6ac163865322fe463e) Thanks [@davidamunga](https://github.com/davidamunga)! - Make changelog and GitHub release notes more professional by dropping author “Thanks!” attributions, using summary-first entries, and simplifying the release body.
+- Make changelog and GitHub release notes more professional by dropping author “Thanks!” attributions, using summary-first entries, and simplifying the release body. ([#74](https://github.com/davidamunga/mpesa2csv/pull/74))
 
-- [#74](https://github.com/davidamunga/mpesa2csv/pull/74) [`ea1f574`](https://github.com/davidamunga/mpesa2csv/commit/ea1f57402c44706531c8aa6ac163865322fe463e) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix password-protected PDFs failing with an empty Tabula error instead of showing the unlock prompt, by capturing Java stderr/stdout and improving password-error detection and the protected-file UI.
+- Fix password-protected PDFs failing with an empty Tabula error instead of showing the unlock prompt, by capturing Java stderr/stdout and improving password-error detection and the protected-file UI. ([#74](https://github.com/davidamunga/mpesa2csv/pull/74))
 
 ## 1.0.1
 

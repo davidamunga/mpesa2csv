@@ -62,6 +62,11 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Local sample statement used for marketing screenshots (may contain personal data)
+scripts/sample-statement.csv
+scripts/sample-statement-stream.csv
+src/shots/fixture.json
+
 # Test coverage
 coverage/
 *.lcov

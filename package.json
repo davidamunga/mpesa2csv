@@ -16,7 +16,9 @@
     "changeset": "changeset",
     "version": "changeset version && pnpm run sync-versions",
     "release": "changeset publish",
-    "sync-versions": "node scripts/sync-versions.js"
+    "sync-versions": "node scripts/sync-versions.js",
+    "shots:fixture": "node scripts/build-fixture.mjs",
+    "shots:capture": "node scripts/capture-shots.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -47,6 +49,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "playwright": "^1.62.1",
     "source-map-js": "^1.2.1",
     "tailwindcss": "^4.1.3",
     "tw-animate-css": "^1.3.8",

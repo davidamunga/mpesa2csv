@@ -9,15 +9,23 @@ import { FileUp, Shield } from "lucide-react";
 interface FileUploaderProps {
   onFilesSelected: (files: File[]) => void;
   status: FileStatus;
+  /** Force drag-over styling (used by marketing screenshot harness). */
+  forceDragActive?: boolean;
+  /** Force an upload error message (screenshot harness). */
+  forceError?: string;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({
   onFilesSelected,
   status,
+  forceDragActive,
+  forceError,
 }) => {
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const showDrag = forceDragActive ?? dragActive;
+  const showError = forceError || uploadError;
 
   // Set up Tauri webview drag-drop event listener
   useEffect(() => {
@@ -159,7 +167,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       <div
         className={cn(
           "relative rounded-xl transition-all duration-200 cursor-pointer overflow-hidden flex-1",
-          dragActive
+          showDrag
             ? "border-2 border-primary bg-primary/8 scale-[1.01]"
             : "border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/20"
         )}
@@ -174,7 +182,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           <FileUp
             className={cn(
               "w-10 h-10 transition-all duration-200",
-              dragActive
+              showDrag
                 ? "text-primary scale-110"
                 : "text-muted-foreground/50"
             )}
@@ -184,19 +192,19 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           {/* Text */}
           <div className="space-y-1.5">
             <h3 className="text-base font-semibold">
-              {dragActive
+              {showDrag
                 ? "Release to upload"
                 : "Drop your M-PESA statement PDFs here"}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {dragActive
+              {showDrag
                 ? "Drop to start converting"
                 : "Single or multiple files · password-protected PDFs supported"}
             </p>
           </div>
 
           {/* CTA */}
-          {!dragActive && (
+          {!showDrag && (
             <Button
               type="button"
               onClick={handleButtonClick}
@@ -219,7 +227,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         </div>
 
         {/* Drag overlay shimmer */}
-        {dragActive && (
+        {showDrag && (
           <div className="absolute inset-0 pointer-events-none rounded-xl ring-2 ring-primary ring-inset" />
         )}
       </div>
@@ -234,9 +242,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       />
 
       {/* Error */}
-      {uploadError && (
+      {showError && (
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2.5">
-          <p className="text-destructive text-sm">{uploadError}</p>
+          <p className="text-destructive text-sm">{showError}</p>
         </div>
       )}
 
