@@ -897,6 +897,50 @@ jobs:
           TAURI_BUNDLE_MACOS_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           CI: true
 
+      # Tauri always names the macOS updater archive mpesa2csv.app.tar.gz.
+      # Parallel aarch64/x86_64 jobs would otherwise overwrite each other on the
+      # same release asset name — rename before upload so each arch is distinct.
+      - name: Rename macOS updater artifacts by architecture
+        if: matrix.platform == 'macos-latest' && steps.tauri-build.outputs.build_success == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
+            ARCH_SUFFIX="aarch64"
+          else
+            ARCH_SUFFIX="x86_64"
+          fi
+
+          BUNDLE_DIR=$(find src-tauri/target -type d -path "*/release/bundle/macos" 2>/dev/null | head -1)
+          if [ -z "$BUNDLE_DIR" ]; then
+            echo "❌ macOS bundle directory not found"
+            exit 1
+          fi
+
+          SRC_TAR="$BUNDLE_DIR/mpesa2csv.app.tar.gz"
+          SRC_SIG="$BUNDLE_DIR/mpesa2csv.app.tar.gz.sig"
+          DEST_TAR="$BUNDLE_DIR/mpesa2csv-${ARCH_SUFFIX}.app.tar.gz"
+          DEST_SIG="$BUNDLE_DIR/mpesa2csv-${ARCH_SUFFIX}.app.tar.gz.sig"
+
+          if [ ! -f "$SRC_TAR" ]; then
+            echo "❌ Updater archive not found: $SRC_TAR"
+            find src-tauri/target -name "*.app.tar.gz*" 2>/dev/null || true
+            exit 1
+          fi
+
+          mv "$SRC_TAR" "$DEST_TAR"
+          echo "✅ Renamed updater archive → $(basename "$DEST_TAR")"
+
+          if [ -f "$SRC_SIG" ]; then
+            mv "$SRC_SIG" "$DEST_SIG"
+            echo "✅ Renamed updater signature → $(basename "$DEST_SIG")"
+          else
+            echo "⚠️ Signature file not found at $SRC_SIG"
+          fi
+
+          ls -lh "$DEST_TAR" "$DEST_SIG" 2>/dev/null || ls -lh "$DEST_TAR"
+
       - name: Create GitHub Release
         if: steps.tauri-build.outputs.build_success == 'true'
         uses: softprops/action-gh-release@v1
@@ -1008,16 +1052,32 @@ jobs:
           sleep 10
 
           # Download signature files from the release
+          # macOS updater archives are arch-specific (see "Rename macOS updater artifacts")
           mkdir -p signatures
-          for sig_file in "mpesa2csv.app.tar.gz.sig" "mpesa2csv_${VERSION}_amd64.AppImage.sig" "mpesa2csv_${VERSION}_x64-setup.exe.sig"; do
+          for sig_file in \
+            "mpesa2csv-aarch64.app.tar.gz.sig" \
+            "mpesa2csv-x86_64.app.tar.gz.sig" \
+            "mpesa2csv_${VERSION}_amd64.AppImage.sig" \
+            "mpesa2csv_${VERSION}_x64-setup.exe.sig"
+          do
             gh release download "$TAG" -p "$sig_file" -D signatures 2>/dev/null || echo "" > "signatures/$sig_file"
           done
 
           # Read signature files
           # Tauri v2 uses updater bundle signatures, not installer signatures
-          DARWIN_SIG=$(cat signatures/mpesa2csv.app.tar.gz.sig 2>/dev/null || echo "")
+          DARWIN_AARCH64_SIG=$(cat signatures/mpesa2csv-aarch64.app.tar.gz.sig 2>/dev/null || echo "")
+          DARWIN_X86_64_SIG=$(cat signatures/mpesa2csv-x86_64.app.tar.gz.sig 2>/dev/null || echo "")
           LINUX_X86_64_SIG=$(cat signatures/mpesa2csv_${VERSION}_amd64.AppImage.sig 2>/dev/null || echo "")
           WINDOWS_X86_64_SIG=$(cat signatures/mpesa2csv_${VERSION}_x64-setup.exe.sig 2>/dev/null || echo "")
+
+          if [ -z "$DARWIN_AARCH64_SIG" ] || [ -z "$DARWIN_X86_64_SIG" ]; then
+            echo "❌ Missing macOS updater signature(s)"
+            echo "  aarch64 sig present: $([ -n "$DARWIN_AARCH64_SIG" ] && echo yes || echo no)"
+            echo "  x86_64 sig present: $([ -n "$DARWIN_X86_64_SIG" ] && echo yes || echo no)"
+            echo "Release assets:"
+            gh release view "$TAG" --json assets --jq '.assets[].name' || true
+            exit 1
+          fi
 
           # Use jq to properly create JSON with escaped strings
           # URLs point to updater bundles (.tar.gz, .zip), not installers
@@ -1025,10 +1085,10 @@ jobs:
             --arg version "$VERSION" \
             --arg notes "$RELEASE_NOTES" \
             --arg pub_date "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
-            --arg darwin_aarch64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv.app.tar.gz" \
-            --arg darwin_aarch64_sig "$DARWIN_SIG" \
-            --arg darwin_x86_64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv.app.tar.gz" \
-            --arg darwin_x86_64_sig "$DARWIN_SIG" \
+            --arg darwin_aarch64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv-aarch64.app.tar.gz" \
+            --arg darwin_aarch64_sig "$DARWIN_AARCH64_SIG" \
+            --arg darwin_x86_64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv-x86_64.app.tar.gz" \
+            --arg darwin_x86_64_sig "$DARWIN_X86_64_SIG" \
             --arg linux_x86_64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv_${VERSION}_amd64.AppImage" \
             --arg linux_x86_64_sig "$LINUX_X86_64_SIG" \
             --arg windows_x86_64_url "https://github.com/${{ github.repository }}/releases/download/$TAG/mpesa2csv_${VERSION}_x64-setup.exe" \
@@ -1056,6 +1116,9 @@ jobs:
                 }
               }
             }' > latest.json
+
+          echo "📄 Generated latest.json:"
+          jq '{version, platforms: (.platforms | keys), urls: (.platforms | map_values(.url))}' latest.json
 
           # Upload to the release
           gh release upload "$TAG" latest.json --clobber
