@@ -3,7 +3,8 @@
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "DavidAmunga/mpesa2csv"
+      "repo": "DavidAmunga/mpesa2csv",
+      "template": "\n\n- {summary} {ref}"
     }
   ],
   "commit": false,

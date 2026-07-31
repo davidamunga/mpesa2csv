@@ -41,7 +41,7 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.29.7",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",

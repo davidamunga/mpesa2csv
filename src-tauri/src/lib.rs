@@ -54,7 +54,7 @@ async fn extract_pdf_tables(
     output_path: String,
     password: Option<String>,
 ) -> Result<String, String> {
-    use std::process::Command;
+    use std::process::{Command, Stdio};
     use tauri::Manager;
     
     #[cfg(target_os = "windows")]
@@ -159,8 +159,16 @@ async fn extract_pdf_tables(
         .arg("all");
     
     if let Some(pwd) = password {
+        // Tabula long option is --password (short form is -s, not -p)
         cmd.arg("--password").arg(pwd);
     }
+
+    // Must pipe stdout/stderr before spawn so wait_with_output can capture
+    // Tabula errors (e.g. "Cannot decrypt PDF, the password is incorrect").
+    // Without this, GUI apps get empty Stderr/Stdout and password prompts never trigger.
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     
     let child = cmd
         .spawn()
@@ -204,9 +212,19 @@ async fn extract_pdf_tables(
     if output.status.success() {
         Ok(format!("Tables extracted successfully to: {}", output_path))
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        Err(format!("Tabula error:\nStderr: {}\nStdout: {}", stderr, stdout))
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!(
+                "Process exited with {} and no output",
+                output.status
+            )
+        };
+        Err(format!("Tabula error: {}", detail))
     }
 }
 

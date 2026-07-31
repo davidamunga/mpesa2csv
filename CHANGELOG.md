@@ -4,96 +4,96 @@
 
 ### Patch Changes
 
-- [#72](https://github.com/davidamunga/mpesa2csv/pull/72) [`ac87b5a`](https://github.com/davidamunga/mpesa2csv/commit/ac87b5abcc00846028abfea8a19fe0374de822bd) Thanks [@davidamunga](https://github.com/davidamunga)! - Resolve the `brace-expansion` DoS advisory (GHSA-mh99-v99m-4gvg) by overriding the transitive exceljs dependency to a patched release so CI security audits pass.
+- Resolve the `brace-expansion` DoS advisory (GHSA-mh99-v99m-4gvg) by overriding the transitive exceljs dependency to a patched release so CI security audits pass. ([#72](https://github.com/davidamunga/mpesa2csv/pull/72))
 
-- [#72](https://github.com/davidamunga/mpesa2csv/pull/72) [`ae99570`](https://github.com/davidamunga/mpesa2csv/commit/ae9957058b7f9d47a4a5fa246cd9282f7958600f) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix macOS auto-updates failing on Apple Silicon by publishing separate aarch64 and x86_64 updater archives, and pointing `latest.json` at the matching artifact for each architecture.
+- Fix macOS auto-updates failing on Apple Silicon by publishing separate aarch64 and x86_64 updater archives, and pointing `latest.json` at the matching artifact for each architecture. ([#72](https://github.com/davidamunga/mpesa2csv/pull/72))
 
 ## 1.0.0
 
 ### Major Changes
 
-- [#70](https://github.com/davidamunga/mpesa2csv/pull/70) [`9e0ac87`](https://github.com/davidamunga/mpesa2csv/commit/9e0ac873f21a1fb7e76099a3ed34f3e0caa10527) Thanks [@davidamunga](https://github.com/davidamunga)! - Success screen now shows a financial snapshot — date range covered, total money in, total money out, and charges — all derived from the parsed statement before you export. Window height reduced from 850 → 650px, footer simplified to a single line, and dead-zone layout issues resolved.
+- Success screen now shows a financial snapshot — date range covered, total money in, total money out, and charges — all derived from the parsed statement before you export. Window height reduced from 850 → 650px, footer simplified to a single line, and dead-zone layout issues resolved. ([#70](https://github.com/davidamunga/mpesa2csv/pull/70))
 
 ### Patch Changes
 
-- [#69](https://github.com/davidamunga/mpesa2csv/pull/69) [`0395f66`](https://github.com/davidamunga/mpesa2csv/commit/0395f66944e52e8514257f1a81a8adfee8cdba88) Thanks [@davidamunga](https://github.com/davidamunga)! - Reduce initial JS bundle from 1 466 kB to 487 kB (−67%) by removing 10 unused packages, lazy-loading ExcelJS via dynamic import
+- Reduce initial JS bundle from 1 466 kB to 487 kB (−67%) by removing 10 unused packages, lazy-loading ExcelJS via dynamic import ([#69](https://github.com/davidamunga/mpesa2csv/pull/69))
 
-- [#70](https://github.com/davidamunga/mpesa2csv/pull/70) [`6c45724`](https://github.com/davidamunga/mpesa2csv/commit/6c45724c32db6fb9d2b54f2af3468af7b8eb3690) Thanks [@davidamunga](https://github.com/davidamunga)! - improved success state ui
+- improved success state ui ([#70](https://github.com/davidamunga/mpesa2csv/pull/70))
 
 ## 0.14.0
 
 ### Minor Changes
 
-- [#67](https://github.com/davidamunga/mpesa2csv/pull/67) [`159e467`](https://github.com/davidamunga/mpesa2csv/commit/159e467a4672cdf425a3b4abcc83a6151edde763) Thanks [@davidamunga](https://github.com/davidamunga)! - - Clickable drop zone
-  - Cancel button during processing
-  - Transaction preview before export
-  - Re-export without Start Again
-  - XLSX blob only on Export click
-  - Visible webhook result badge.
+- - Clickable drop zone ([#67](https://github.com/davidamunga/mpesa2csv/pull/67))
+ - Cancel button during processing
+ - Transaction preview before export
+ - Re-export without Start Again
+ - XLSX blob only on Export click
+ - Visible webhook result badge.
 
 ### Patch Changes
 
-- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`65c8984`](https://github.com/davidamunga/mpesa2csv/commit/65c8984b738ad2b2d67b8f3dcb66397e2eec7b3e) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix analytics sheets ignoring active export filters (e.g. exclude charges, sort order).
+- Fix analytics sheets ignoring active export filters (e.g. exclude charges, sort order). ([#65](https://github.com/davidamunga/mpesa2csv/pull/65))
 
-- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix multi-file batch losing already-processed statements when a mid-batch file requires a password.
+- Fix multi-file batch losing already-processed statements when a mid-batch file requires a password. ([#65](https://github.com/davidamunga/mpesa2csv/pull/65))
 
-- [#66](https://github.com/davidamunga/mpesa2csv/pull/66) [`1dfacf4`](https://github.com/davidamunga/mpesa2csv/commit/1dfacf4e67f72335730c6427e209063c23ab1e41) Thanks [@davidamunga](https://github.com/davidamunga)! - fix : dependencies security
+- fix : dependencies security ([#66](https://github.com/davidamunga/mpesa2csv/pull/66))
 
-- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Treat a parsed PDF with zero transactions as an error instead of showing a silent success screen.
+- Treat a parsed PDF with zero transactions as an error instead of showing a silent success screen. ([#65](https://github.com/davidamunga/mpesa2csv/pull/65))
 
-- [#65](https://github.com/davidamunga/mpesa2csv/pull/65) [`98f56be`](https://github.com/davidamunga/mpesa2csv/commit/98f56be85d73804181da370bfbb4a3eff1f38670) Thanks [@davidamunga](https://github.com/davidamunga)! - Kill the Java/Tabula process when PDF extraction times out instead of leaving it running in the background.
+- Kill the Java/Tabula process when PDF extraction times out instead of leaving it running in the background. ([#65](https://github.com/davidamunga/mpesa2csv/pull/65))
 
 ## 0.13.0
 
 ### Minor Changes
 
-- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: add recurring transactions export sheet
+- feat: add recurring transactions export sheet ([`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f))
 
-- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: add time of day export sheet
+- feat: add time of day export sheet ([`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f))
 
-- [`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f) Thanks [@davidamunga](https://github.com/davidamunga)! - feat: updated ui components
+- feat: updated ui components ([`8436074`](https://github.com/davidamunga/mpesa2csv/commit/84360748c8636025407f4fe32cc805b4d1ffed3f))
 
 ## 0.12.4
 
 ### Patch Changes
 
-- [`c5c2765`](https://github.com/davidamunga/mpesa2csv/commit/c5c2765906d794bfbbf71c10484a4d466e703f9a) Thanks [@davidamunga](https://github.com/davidamunga)! - fix: os build release fixes
+- fix: os build release fixes ([`c5c2765`](https://github.com/davidamunga/mpesa2csv/commit/c5c2765906d794bfbbf71c10484a4d466e703f9a))
 
 ## 0.12.1
 
 ### Patch Changes
 
-- [`1c8dd71`](https://github.com/davidamunga/mpesa2csv/commit/1c8dd71dfb0b603c0f4af2ca946ed73759ff7cac) Thanks [@davidamunga](https://github.com/davidamunga)! - fix: intel mac build
+- fix: intel mac build ([`1c8dd71`](https://github.com/davidamunga/mpesa2csv/commit/1c8dd71dfb0b603c0f4af2ca946ed73759ff7cac))
 
 ## 0.12.0
 
 ### Minor Changes
 
-- [#59](https://github.com/DavidAmunga/mpesa2csv/pull/59) [`dd6ea1b`](https://github.com/DavidAmunga/mpesa2csv/commit/dd6ea1b3200aed05737467b785c79d9a5e96da9d) Thanks [@DavidAmunga](https://github.com/DavidAmunga)! - feat: add total charges in header summary
+- feat: add total charges in header summary ([#59](https://github.com/DavidAmunga/mpesa2csv/pull/59))
 
 ## 0.11.4
 
 ### Patch Changes
 
-- [`c7be488`](https://github.com/DavidAmunga/mpesa2csv/commit/c7be4883974d76f33415e93ccb7daa05b54348fd) Thanks [@DavidAmunga](https://github.com/DavidAmunga)! - fix: windows build-jre folder path
+- fix: windows build-jre folder path ([`c7be488`](https://github.com/DavidAmunga/mpesa2csv/commit/c7be4883974d76f33415e93ccb7daa05b54348fd))
 
 ## 0.11.3
 
 ### Patch Changes
 
-- [`fa44fa8`](https://github.com/DavidAmunga/mpesa2csv/commit/fa44fa8d8d14de521626244d4f13a1a1aa1769dd) Thanks [@DavidAmunga](https://github.com/DavidAmunga)! - fix: windows jre folder bundling
+- fix: windows jre folder bundling ([`fa44fa8`](https://github.com/DavidAmunga/mpesa2csv/commit/fa44fa8d8d14de521626244d4f13a1a1aa1769dd))
 
 ## 0.11.2
 
 ### Patch Changes
 
-- [`2053a87`](https://github.com/DavidAmunga/mpesa2csv/commit/2053a8725c43a4fcd23ef5cb1e370dc8ceab20ea) Thanks [@DavidAmunga](https://github.com/DavidAmunga)! - revert:windows installers compression
+- revert:windows installers compression ([`2053a87`](https://github.com/DavidAmunga/mpesa2csv/commit/2053a8725c43a4fcd23ef5cb1e370dc8ceab20ea))
 
 ## 0.11.1
 
 ### Patch Changes
 
-- [`46ea850`](https://github.com/DavidAmunga/mpesa2csv/commit/46ea8502c794ce635ad6a7b988245a6ccfbda068) Thanks [@DavidAmunga](https://github.com/DavidAmunga)! - fix: improve JRE bundling verification for Windows and macOS installers
+- fix: improve JRE bundling verification for Windows and macOS installers ([`46ea850`](https://github.com/DavidAmunga/mpesa2csv/commit/46ea8502c794ce635ad6a7b988245a6ccfbda068))
 
 ## 0.11.0
 
@@ -136,10 +136,10 @@
 
 - 619f6e7: feat: added extra export formats
 
-  - JSON Export - Exports transactions in JSON format
-  - OFX Export - Exports transactions in OFX (Open Financial Exchange) format (Experimental)
-  - QFX Export - Exports transactions in QFX (Quicken Financial) format (Experimental)
-  - QIF Export - Exports transactions in QIF (Quicken Interchange) format (Experimental)
+ - JSON Export - Exports transactions in JSON format
+ - OFX Export - Exports transactions in OFX (Open Financial Exchange) format (Experimental)
+ - QFX Export - Exports transactions in QFX (Quicken Financial) format (Experimental)
+ - QIF Export - Exports transactions in QIF (Quicken Interchange) format (Experimental)
 
 ## 0.7.5
 
@@ -262,10 +262,10 @@
 
 - 68e265d: Add optional Charges/Fees sheet to Excel exports
 
-  - Add new export option to include a separate "Charges & Fees" sheet when exporting to Excel
-  - Filter and categorize all transactions containing "charge" in the details
-  - Display charges with date, amount, and balance information
-  - Include summary totals for total charges and number of charge transactions
+ - Add new export option to include a separate "Charges & Fees" sheet when exporting to Excel
+ - Filter and categorize all transactions containing "charge" in the details
+ - Display charges with date, amount, and balance information
+ - Include summary totals for total charges and number of charge transactions
 
 ## 0.0.3
 
