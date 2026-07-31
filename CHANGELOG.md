@@ -1,5 +1,13 @@
 # mpesa2csv
 
+## 1.0.1
+
+### Patch Changes
+
+- [#72](https://github.com/davidamunga/mpesa2csv/pull/72) [`ac87b5a`](https://github.com/davidamunga/mpesa2csv/commit/ac87b5abcc00846028abfea8a19fe0374de822bd) Thanks [@davidamunga](https://github.com/davidamunga)! - Resolve the `brace-expansion` DoS advisory (GHSA-mh99-v99m-4gvg) by overriding the transitive exceljs dependency to a patched release so CI security audits pass.
+
+- [#72](https://github.com/davidamunga/mpesa2csv/pull/72) [`ae99570`](https://github.com/davidamunga/mpesa2csv/commit/ae9957058b7f9d47a4a5fa246cd9282f7958600f) Thanks [@davidamunga](https://github.com/davidamunga)! - Fix macOS auto-updates failing on Apple Silicon by publishing separate aarch64 and x86_64 updater archives, and pointing `latest.json` at the matching artifact for each architecture.
+
 ## 1.0.0
 
 ### Major Changes
