@@ -12,6 +12,7 @@ import {
   addRecurringTransactionsSheet,
   addTimeOfDayActivitySheet,
   addReversalsSheet,
+  addPayBillsTillsSheet,
 } from "./exports";
 import { applyTransactionFilters } from "./transactionFilters";
 import { formatDate } from "../utils/dateFormatter";
@@ -124,6 +125,10 @@ export class XlsxService {
     // charge filtering (or other filters) change the main sheet.
     if (options?.includeReversalsSheet) {
       addReversalsSheet(workbook, statement);
+    }
+
+    if (options?.includePayBillsTillsSheet) {
+      addPayBillsTillsSheet(workbook, statement);
     }
 
     // All remaining analytics sheets use filteredStatement so active filters

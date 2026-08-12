@@ -74,6 +74,12 @@ const SHEET_GROUPS = [
         description:
           "Reversed payments linked back to the original transaction where possible",
       },
+      {
+        key: "includePayBillsTillsSheet" as keyof ExportOptionsType,
+        name: "Pay Bills & Tills",
+        description:
+          "Pay bill and buy-goods totals by shortcode, with paybill account breakdown",
+      },
     ],
   },
   {
