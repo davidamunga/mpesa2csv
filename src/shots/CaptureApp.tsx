@@ -23,7 +23,15 @@ import {
 } from "../types";
 import { ExportService } from "../services/exportService";
 import { cn } from "@/lib/utils";
-import fixture from "./fixture.json";
+import stubFixture from "./fixture.stub.json";
+
+// Prefer a locally generated fixture.json (gitignored) when present for
+// marketing screenshots; fall back to the committed stub for CI/builds.
+const localFixtures = import.meta.glob<{ default: typeof stubFixture }>(
+  "./fixture.json",
+  { eager: true }
+);
+const fixture = localFixtures["./fixture.json"]?.default ?? stubFixture;
 
 export type ShotId =
   | "dropzone"

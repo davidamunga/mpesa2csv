@@ -1,0 +1,49 @@
+{
+  "fileName": "MPESA_Statement_sample.pdf",
+  "statement": {
+    "fileName": "MPESA_Statement_sample.pdf",
+    "transactions": [
+      {
+        "receiptNo": "SAMPLE00001",
+        "completionTime": "2025-09-01 09:00:00",
+        "details": "Funds received from 07******000 - SAMPLE PERSON",
+        "transactionStatus": "Completed",
+        "paidIn": 1000,
+        "withdrawn": null,
+        "balance": 5000,
+        "raw": ""
+      },
+      {
+        "receiptNo": "SAMPLE00002",
+        "completionTime": "2025-09-01 09:05:00",
+        "details": "Send Money Reversal via API to - 07******000 SAMPLE PERSON",
+        "transactionStatus": "Completed",
+        "paidIn": null,
+        "withdrawn": 1000,
+        "balance": 4000,
+        "raw": ""
+      },
+      {
+        "receiptNo": "SAMPLE00003",
+        "completionTime": "2025-09-01 10:00:00",
+        "details": "Merchant Payment Online to 123456 - SAMPLE MERCHANT",
+        "transactionStatus": "Completed",
+        "paidIn": null,
+        "withdrawn": 250,
+        "balance": 3750,
+        "raw": ""
+      },
+      {
+        "receiptNo": "SAMPLE00004",
+        "completionTime": "2025-09-01 10:00:00",
+        "details": "Pay Merchant Charge",
+        "transactionStatus": "Completed",
+        "paidIn": null,
+        "withdrawn": 5,
+        "balance": 3745,
+        "raw": ""
+      }
+    ],
+    "totalCharges": 5
+  }
+}
