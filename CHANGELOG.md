@@ -1,5 +1,13 @@
 # mpesa2csv
 
+## 1.1.0
+
+### Minor Changes
+
+- [#78](https://github.com/davidamunga/mpesa2csv/pull/78) [`3a6825a`](https://github.com/davidamunga/mpesa2csv/commit/3a6825a03e96ba02aa4c43f3a4a339ba1eb7cb63) Thanks [@davidamunga](https://github.com/davidamunga)! - Add optional Pay Bills & Tills Excel sheet with shortcode and account rollups.
+
+- [#77](https://github.com/davidamunga/mpesa2csv/pull/77) [`a2286d0`](https://github.com/davidamunga/mpesa2csv/commit/a2286d0a591d4e6b6a0d05e29d832856a8921826) Thanks [@davidamunga](https://github.com/davidamunga)! - Add optional Reversals Excel sheet and fix multiline Tabula CSV parsing.
+
 ## 1.0.2
 
 ### Patch Changes
