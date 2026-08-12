@@ -76,7 +76,9 @@ export class TabulaService {
    */
   static parseTabulaCSV(csvContent: string): MPesaStatement {
     const transactions: Transaction[] = [];
-    const lines = csvContent.split("\n").filter((line) => line.trim());
+    // Tabula often wraps long Details across newlines inside quotes. Splitting
+    // on \n alone drops those rows (common for reversals / long paybill names).
+    const lines = this.splitCsvRecords(csvContent);
 
     if (lines.length === 0) {
       return { transactions: [], totalCharges: 0 };
@@ -113,11 +115,14 @@ export class TabulaService {
 
       if (fields[0]?.toLowerCase().includes("receipt")) continue;
 
+      const normalize = (value: string | undefined) =>
+        (value || "").trim().replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+
       const transaction: Transaction = {
-        receiptNo: fields[0]?.trim().replace(/\r/g, " ") || "",
-        completionTime: fields[1]?.trim().replace(/\r/g, " ") || "",
-        details: fields[2]?.trim().replace(/\r/g, " ") || "",
-        transactionStatus: fields[3]?.trim().replace(/\r/g, " ") || "Unknown",
+        receiptNo: normalize(fields[0]),
+        completionTime: normalize(fields[1]),
+        details: normalize(fields[2]),
+        transactionStatus: normalize(fields[3]) || "Unknown",
         paidIn: this.parseAmount(fields[4]),
         withdrawn: this.parseAmount(fields[5]),
         balance: this.parseAmount(fields[6]) || 0,
@@ -162,6 +167,49 @@ export class TabulaService {
     return chargeTransactions.reduce((sum, transaction) => {
       return sum + (transaction.withdrawn || transaction.paidIn || 0);
     }, 0);
+  }
+
+  /**
+   * Split CSV into records without breaking on newlines that sit inside quotes.
+   */
+  private static splitCsvRecords(csvContent: string): string[] {
+    const records: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < csvContent.length; i++) {
+      const char = csvContent[i];
+
+      if (char === '"') {
+        if (inQuotes && csvContent[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+          current += char;
+        }
+        continue;
+      }
+
+      if ((char === "\n" || char === "\r") && !inQuotes) {
+        if (char === "\r" && csvContent[i + 1] === "\n") {
+          i++;
+        }
+        if (current.trim()) {
+          records.push(current);
+        }
+        current = "";
+        continue;
+      }
+
+      current += char;
+    }
+
+    if (current.trim()) {
+      records.push(current);
+    }
+
+    return records;
   }
 
   private static parseCSVLine(line: string): string[] {

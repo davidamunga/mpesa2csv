@@ -8,3 +8,4 @@ export { addMoneyInSheet } from "./moneyInSheet";
 export { addMoneyOutSheet } from "./moneyOutSheet";
 export { addRecurringTransactionsSheet } from "./recurringTransactionsSheet";
 export { addTimeOfDayActivitySheet } from "./timeOfDayActivitySheet";
+export { addReversalsSheet } from "./reversalsSheet";

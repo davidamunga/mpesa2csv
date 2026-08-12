@@ -57,6 +57,7 @@ export interface ExportOptions {
   includeMoneyOutSheet?: boolean;
   includeRecurringTransactionsSheet?: boolean;
   includeTimeOfDaySheet?: boolean;
+  includeReversalsSheet?: boolean;
   // Filter options
   filterOutCharges?: boolean;
   sortOrder?: SortOrder;
