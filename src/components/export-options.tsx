@@ -68,6 +68,12 @@ const SHEET_GROUPS = [
         name: "Charges & Fees",
         description: "All M-PESA transaction charges and fees",
       },
+      {
+        key: "includeReversalsSheet" as keyof ExportOptionsType,
+        name: "Reversals",
+        description:
+          "Reversed payments linked back to the original transaction where possible",
+      },
     ],
   },
   {

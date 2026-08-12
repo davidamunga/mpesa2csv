@@ -11,6 +11,7 @@ import {
   addMoneyOutSheet,
   addRecurringTransactionsSheet,
   addTimeOfDayActivitySheet,
+  addReversalsSheet,
 } from "./exports";
 import { applyTransactionFilters } from "./transactionFilters";
 import { formatDate } from "../utils/dateFormatter";
@@ -117,6 +118,12 @@ export class XlsxService {
     // "filter out charges" is active on the main sheet.
     if (options?.includeChargesSheet) {
       addChargesSheet(workbook, statement);
+    }
+
+    // Reversals need the full statement so originals remain linkable even when
+    // charge filtering (or other filters) change the main sheet.
+    if (options?.includeReversalsSheet) {
+      addReversalsSheet(workbook, statement);
     }
 
     // All remaining analytics sheets use filteredStatement so active filters
