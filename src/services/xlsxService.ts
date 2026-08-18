@@ -11,6 +11,7 @@ import {
   addMoneyOutSheet,
   addRecurringTransactionsSheet,
   addTimeOfDayActivitySheet,
+  addDayOfWeekActivitySheet,
   addReversalsSheet,
   addPayBillsTillsSheet,
 } from "./exports";
@@ -167,6 +168,10 @@ export class XlsxService {
 
     if (options?.includeTimeOfDaySheet) {
       addTimeOfDayActivitySheet(workbook, filteredStatement);
+    }
+
+    if (options?.includeDayOfWeekSheet) {
+      addDayOfWeekActivitySheet(workbook, filteredStatement);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
