@@ -1,5 +1,11 @@
 # mpesa2csv
 
+## 1.2.0
+
+### Minor Changes
+
+- [#80](https://github.com/davidamunga/mpesa2csv/pull/80) [`f2bee2b`](https://github.com/davidamunga/mpesa2csv/commit/f2bee2b1caa0a71bb9ca0eb1b7eb823ae113411b) Thanks [@davidamunga](https://github.com/davidamunga)! - Add optional Day-of-Week Activity Excel analysis sheet.
+
 ## 1.1.0
 
 ### Minor Changes
