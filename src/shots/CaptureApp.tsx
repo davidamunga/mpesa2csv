@@ -94,6 +94,7 @@ const ALL_SHEETS: ExportOptionsType = {
   includeRecurringTransactionsSheet: true,
   includeAmountDistributionSheet: true,
   includeTimeOfDaySheet: true,
+  includeDayOfWeekSheet: true,
   includeReversalsSheet: true,
   includePayBillsTillsSheet: true,
   filterOutCharges: true,

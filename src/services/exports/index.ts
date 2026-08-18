@@ -8,5 +8,6 @@ export { addMoneyInSheet } from "./moneyInSheet";
 export { addMoneyOutSheet } from "./moneyOutSheet";
 export { addRecurringTransactionsSheet } from "./recurringTransactionsSheet";
 export { addTimeOfDayActivitySheet } from "./timeOfDayActivitySheet";
+export { addDayOfWeekActivitySheet } from "./dayOfWeekActivitySheet";
 export { addReversalsSheet } from "./reversalsSheet";
 export { addPayBillsTillsSheet } from "./payBillsTillsSheet";

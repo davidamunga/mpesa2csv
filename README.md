@@ -47,7 +47,7 @@ M-PESA Statement PDFs arrive password-locked. mpesa2csv unlocks them on your mac
 
 ### Excel analysis sheets
 
-Optionally include sheets for money in/out, charges, cash-flow summary, monthly/weekly breakdown, daily balance, amount distribution, top contacts, recurring payments, and time-of-day patterns.
+Optionally include sheets for money in/out, charges, reversals, cash-flow summary, monthly/weekly breakdown, daily balance, amount distribution, top contacts, recurring payments, time-of-day patterns, and day-of-week activity.
 
 ### Privacy
 

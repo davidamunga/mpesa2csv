@@ -121,6 +121,12 @@ const SHEET_GROUPS = [
         name: "Time of Day",
         description: "Transaction activity by hour — night, morning, afternoon, evening",
       },
+      {
+        key: "includeDayOfWeekSheet" as keyof ExportOptionsType,
+        name: "Day of Week",
+        description:
+          "Transaction activity by weekday — peak days and weekday vs weekend",
+      },
     ],
   },
 ];
